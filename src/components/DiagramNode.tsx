@@ -16,7 +16,7 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
   const {
     selectNode, toggleMultiSel, selNode, csrc, csrcSide, multiSel, cmode,
     attachChild, detachNode, addEdge, cancelConnect,
-    setCtxTarget, moveNode,
+    setCtxTarget, setNodePosition, commitWorkspaceSnapshot, captureWorkspaceSnapshot,
   } = useDiagram()
 
   const isChild = !!node.parent
@@ -63,22 +63,24 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
         else if (allTexts[id]) origins[id] = { x: allTexts[id].x, y: allTexts[id].y }
       })
       multiDragRef.current = { active: true, startX: e.clientX, startY: e.clientY, origins }
+      const before = captureWorkspaceSnapshot()
       const onMove = (me: MouseEvent) => {
-        const { moveNode, moveText } = useDiagram.getState()
+        const { setNodePosition, setTextPosition } = useDiagram.getState()
         const dx = (me.clientX - multiDragRef.current.startX) / zoom
         const dy = (me.clientY - multiDragRef.current.startY) / zoom
         multiSel.forEach(id => {
           const o = multiDragRef.current.origins[id]
           if (!o) return
           const { nodes: n2, texts: t2 } = useDiagram.getState()
-          if (n2[id]) moveNode(id, o.x + dx, o.y + dy)
-          else if (t2[id]) moveText(id, o.x + dx, o.y + dy)
+          if (n2[id]) setNodePosition(id, o.x + dx, o.y + dy)
+          else if (t2[id]) setTextPosition(id, o.x + dx, o.y + dy)
         })
       }
       const onUp = () => {
         multiDragRef.current.active = false
         document.removeEventListener('mousemove', onMove)
         document.removeEventListener('mouseup', onUp)
+        commitWorkspaceSnapshot('Move selection', before)
       }
       document.addEventListener('mousemove', onMove)
       document.addEventListener('mouseup', onUp)
@@ -86,6 +88,7 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
     }
 
     dragRef.current = { active: true, startX: e.clientX, startY: e.clientY, moved: false, ox: 0, oy: 0 }
+    const before = captureWorkspaceSnapshot()
 
     const onMove = (me: MouseEvent) => {
       const d = dragRef.current
@@ -127,7 +130,7 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
 
       const newX = viewport.x + (me.clientX - wr.left - d.ox) / zoom
       const newY = viewport.y + (me.clientY - wr.top - d.oy) / zoom
-      moveNode(node.id, newX, newY)
+      setNodePosition(node.id, newX, newY)
 
       const under = findDropTarget(me.clientX, me.clientY, node.id)
       if (dragOverRef.current && dragOverRef.current !== under) {
@@ -150,6 +153,9 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
         dragOverRef.current = null
       }
       dragRef.current.active = false
+      if (!useDiagram.getState().nodes[node.id]?.parent) {
+        commitWorkspaceSnapshot('Move box', before)
+      }
     }
 
     document.addEventListener('mousemove', onMove)

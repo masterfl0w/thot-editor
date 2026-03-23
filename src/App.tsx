@@ -23,6 +23,11 @@ export default function App() {
     undo,
     copySelectionToClipboard,
     pasteClipboard,
+    moveNode,
+    moveText,
+    nodes,
+    texts,
+    layoutMode,
     viewport,
     pointer,
     zoom,
@@ -79,6 +84,33 @@ export default function App() {
         }
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (layoutMode === 'static' && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        const step = 24
+        const delta = e.key === 'ArrowUp'
+          ? { x: 0, y: -step }
+          : e.key === 'ArrowDown'
+            ? { x: 0, y: step }
+            : e.key === 'ArrowLeft'
+              ? { x: -step, y: 0 }
+              : { x: step, y: 0 }
+
+        const selection = multiSel.size > 0
+          ? [...multiSel]
+          : selNode
+            ? [selNode]
+            : selText
+              ? [selText]
+              : []
+
+        if (selection.length > 0) {
+          e.preventDefault()
+          selection.forEach(id => {
+            if (nodes[id]) moveNode(id, nodes[id].x + delta.x, nodes[id].y + delta.y)
+            else if (texts[id]) moveText(id, texts[id].x + delta.x, texts[id].y + delta.y)
+          })
+          return
+        }
+      }
       if (e.key === 'Escape') {
         if (cmode) cancelConnect()
         else deselectAll()
@@ -107,7 +139,7 @@ export default function App() {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [editingTextId, cmode, selNode, selText, selEdge, multiSel, viewport.x, viewport.y, pointer, zoom, copySelectionToClipboard, pasteClipboard, undo])
+  }, [editingTextId, cmode, selNode, selText, selEdge, multiSel, layoutMode, nodes, texts, viewport.x, viewport.y, pointer, zoom, copySelectionToClipboard, pasteClipboard, moveNode, moveText, undo])
 
   return (
     <div className={css({

@@ -104,6 +104,10 @@ interface DiagramState {
   setViewport: (viewport: { x: number; y: number }) => void
   setPointer: (pointer: { x: number; y: number } | null) => void
   setZoom: (zoom: number) => void
+  captureWorkspaceSnapshot: () => WorkspaceSnapshot
+  commitWorkspaceSnapshot: (action: string, before: WorkspaceSnapshot) => void
+  setNodePosition: (id: string, x: number, y: number) => void
+  setTextPosition: (id: string, x: number, y: number) => void
   moveNode: (id: string, x: number, y: number) => void
   moveText: (id: string, x: number, y: number) => void
 }
@@ -622,6 +626,48 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   setPointer: (pointer) => set({ pointer }),
 
   setZoom: (zoom) => set({ zoom }),
+
+  captureWorkspaceSnapshot: () => getWorkspaceSnapshot(get()),
+
+  commitWorkspaceSnapshot: (action, before) => {
+    const after = getWorkspaceSnapshot(get())
+    if (sameWorkspace(before, after)) return
+    set(state => ({
+      historyPast: [...state.historyPast.slice(-(MAX_UNDO - 1)), cloneWorkspaceSnapshot(before)],
+      historyFuture: [],
+      actionHistory: [...state.actionHistory.slice(-(MAX_ACTION_HISTORY - 1)), action],
+    }))
+  },
+
+  setNodePosition: (id, x, y) => {
+    const { nodes, layoutMode } = get()
+    if (!nodes[id]) return
+    set({
+      nodes: {
+        ...nodes,
+        [id]: {
+          ...nodes[id],
+          x: layoutMode === 'static' ? snap(x) : x,
+          y: layoutMode === 'static' ? snap(y) : y,
+        },
+      },
+    })
+  },
+
+  setTextPosition: (id, x, y) => {
+    const { texts, layoutMode } = get()
+    if (!texts[id]) return
+    set({
+      texts: {
+        ...texts,
+        [id]: {
+          ...texts[id],
+          x: layoutMode === 'static' ? snap(x) : x,
+          y: layoutMode === 'static' ? snap(y) : y,
+        },
+      },
+    })
+  },
 
   moveNode: (id, x, y) => {
     const { nodes, layoutMode } = get()

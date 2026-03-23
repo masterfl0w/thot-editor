@@ -13,7 +13,20 @@ interface Props {
 }
 
 export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
-  const { selectText, toggleMultiSel, selText, multiSel, startEditText, finishEditText, editingTextId, setCtxTarget, moveText, updateText } = useDiagram()
+  const {
+    selectText,
+    toggleMultiSel,
+    selText,
+    multiSel,
+    startEditText,
+    finishEditText,
+    editingTextId,
+    setCtxTarget,
+    setTextPosition,
+    commitWorkspaceSnapshot,
+    captureWorkspaceSnapshot,
+    updateText,
+  } = useDiagram()
 
   const isSelected = selText === text.id
   const isMultiSel = multiSel.has(text.id) && !isSelected
@@ -70,6 +83,7 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
     if (isEditing) return
     if ((multiSel.has(text.id) && multiSel.size > 1)) return
     dragRef.current = { active: true, startX: e.clientX, startY: e.clientY, moved: false, ox: 0, oy: 0 }
+    const before = captureWorkspaceSnapshot()
 
     const onMove = (me: MouseEvent) => {
       const d = dragRef.current
@@ -84,7 +98,7 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
         const r = el?.getBoundingClientRect()
         if (r) { d.ox = me.clientX - wr.left - (r.left - wr.left); d.oy = me.clientY - wr.top - (r.top - wr.top) }
       }
-      moveText(
+      setTextPosition(
         text.id,
         viewport.x + (me.clientX - wr.left - d.ox) / zoom,
         viewport.y + (me.clientY - wr.top - d.oy) / zoom,
@@ -95,6 +109,7 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
       dragRef.current.active = false
+      commitWorkspaceSnapshot('Move text', before)
     }
 
     document.addEventListener('mousemove', onMove)
