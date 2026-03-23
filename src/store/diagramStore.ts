@@ -25,6 +25,7 @@ interface DiagramState {
   nodes: Record<string, DiagramNode>
   texts: Record<string, TextNode>
   edges: Edge[]
+  theme: 'light' | 'dark'
   viewport: { x: number; y: number }
   pointer: { x: number; y: number } | null
   zoom: number
@@ -70,6 +71,8 @@ interface DiagramState {
   setCtxTarget: (t: ContextMenuTarget) => void
   setModeText: (t: string) => void
   setInteractionMode: (mode: 'select' | 'move') => void
+  setTheme: (theme: 'light' | 'dark') => void
+  toggleTheme: () => void
   setViewport: (viewport: { x: number; y: number }) => void
   setPointer: (pointer: { x: number; y: number } | null) => void
   setZoom: (zoom: number) => void
@@ -80,11 +83,14 @@ interface DiagramState {
 const DEFAULT_MODE = 'Select mode: drag to multi-select · Shift-click to add to selection · Right-click to add'
 const MOVE_MODE = 'Move mode: drag or scroll to pan · Right-click to add'
 const STORAGE_KEY = 'thot-editor-workspace'
+const DEFAULT_THEME: 'light' | 'dark' =
+  typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 
 export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   nodes: {},
   texts: {},
   edges: [],
+  theme: DEFAULT_THEME,
   viewport: { x: 0, y: 0 },
   pointer: null,
   zoom: 1,
@@ -138,7 +144,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   },
 
   addText: (opts = {}) => {
-    const { texts, tc } = get()
+    const { texts, tc, theme } = get()
     const newTc = tc + 1
     const id = 't' + newTc
     const text: TextNode = {
@@ -147,7 +153,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
       x: opts.x ?? 100,
       y: opts.y ?? 80,
       size: opts.size ?? 16,
-      color: opts.color ?? '#ffffff',
+      color: opts.color ?? (theme === 'dark' ? '#ffffff' : '#1a1a18'),
       family: opts.family ?? 'inherit',
       bold: opts.bold ?? false,
       italic: opts.italic ?? false,
@@ -366,6 +372,10 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
       : DEFAULT_MODE,
   }),
 
+  setTheme: (theme) => set({ theme }),
+
+  toggleTheme: () => set(state => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+
   setViewport: (viewport) => set({ viewport }),
 
   setPointer: (pointer) => set({ pointer }),
@@ -390,6 +400,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
     nodes: state.nodes,
     texts: state.texts,
     edges: state.edges,
+    theme: state.theme,
     viewport: state.viewport,
     zoom: state.zoom,
     interactionMode: state.interactionMode,

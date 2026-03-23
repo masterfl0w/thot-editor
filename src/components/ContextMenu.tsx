@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useDiagram, adjHex } from '../store/diagramStore'
 import { copySelectionAsPng, copySelectionAsSvg } from '../utils/selectionExport'
 
@@ -44,42 +44,38 @@ const IconCopy = () => (
   </svg>
 )
 
-const isDark = () => window.matchMedia('(prefers-color-scheme: dark)').matches
-
-const menuStyle: React.CSSProperties = {
-  position: 'fixed',
-  background: isDark() ? '#2c2c2a' : '#fff',
-  border: `0.5px solid ${isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)'}`,
-  borderRadius: 9,
-  boxShadow: '0 4px 18px rgba(0,0,0,0.13)',
-  padding: 5,
-  minWidth: 172,
-  zIndex: 1000,
-}
-
-const itemStyle: React.CSSProperties = {
-  padding: '7px 11px',
-  fontSize: 12,
-  borderRadius: 6,
-  cursor: 'pointer',
-  color: isDark() ? '#f5f3ee' : '#1a1a18',
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-}
-
-const sepStyle: React.CSSProperties = {
-  height: '0.5px',
-  background: isDark() ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-  margin: '4px 0',
-}
-
 export default function ContextMenu() {
   const { ctxTarget, setCtxTarget, addBox, addText, nodes, selectNode, selectText,
     startConnect, detachNode, deleteNode, deleteText, deselectAll, clearAll, startEditText,
-    multiSel, selNode, selText, selEdge, texts, edges, setModeText } = useDiagram()
+    multiSel, selNode, selText, selEdge, texts, edges, setModeText, theme } = useDiagram()
 
   const ref = useRef<HTMLDivElement>(null)
+  const isDark = theme === 'dark'
+  const menuStyle = useMemo<React.CSSProperties>(() => ({
+    position: 'fixed',
+    background: isDark ? '#2c2c2a' : '#fff',
+    border: `0.5px solid ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)'}`,
+    borderRadius: 9,
+    boxShadow: '0 4px 18px rgba(0,0,0,0.13)',
+    padding: 5,
+    minWidth: 172,
+    zIndex: 1000,
+  }), [isDark])
+  const itemStyle = useMemo<React.CSSProperties>(() => ({
+    padding: '7px 11px',
+    fontSize: 12,
+    borderRadius: 6,
+    cursor: 'pointer',
+    color: isDark ? '#f5f3ee' : '#1a1a18',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  }), [isDark])
+  const sepStyle = useMemo<React.CSSProperties>(() => ({
+    height: '0.5px',
+    background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+    margin: '4px 0',
+  }), [isDark])
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -111,8 +107,8 @@ export default function ContextMenu() {
 
   const Item = ({ icon, label, danger, onClick }: { icon: React.ReactNode, label: string, danger?: boolean, onClick: () => void | Promise<void> }) => (
     <div
-      style={{ ...itemStyle, color: danger ? (isDark() ? '#e57373' : '#c0392b') : itemStyle.color }}
-      onMouseEnter={e => (e.currentTarget.style.background = isDark() ? '#3d3d3a' : '#f5f3ee')}
+      style={{ ...itemStyle, color: danger ? (isDark ? '#e57373' : '#c0392b') : itemStyle.color }}
+      onMouseEnter={e => (e.currentTarget.style.background = isDark ? '#3d3d3a' : '#f5f3ee')}
       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
       onClick={async () => { await onClick(); close() }}
     >
@@ -153,7 +149,7 @@ export default function ContextMenu() {
             <Item icon={<IconChild />} label="Add child box" onClick={() => {
               const pb = nodes[ctxTarget.id]
               if (!pb) return
-              const isDarkMode = isDark()
+              const isDarkMode = isDark
               const bg = adjHex(pb.bg, isDarkMode ? 30 : -30)
               const id = addBox({ parent: ctxTarget.id, title: 'Child box', bg, fg: pb.fg })
               selectNode(id)

@@ -51,6 +51,17 @@ const IconPlus = () => (
     <line x1="6.5" y1="3" x2="6.5" y2="10" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
   </svg>
 )
+const IconSun = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <circle cx="6.5" cy="6.5" r="2.2" stroke="currentColor" strokeWidth="1.1"/>
+    <path d="M6.5 1.5v1.2M6.5 10.3v1.2M1.5 6.5h1.2M10.3 6.5h1.2M2.9 2.9l.8.8M9.3 9.3l.8.8M10.1 2.9l-.8.8M3.7 9.3l-.8.8" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+  </svg>
+)
+const IconMoon = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <path d="M8.9 2.1a4.5 4.5 0 104 6.1A4.9 4.9 0 018.9 2.1z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
 
 const topbarStyle = css({
   height: '48px',
@@ -69,7 +80,7 @@ const topbarStyle = css({
   left: '50%',
   transform: 'translateX(-50%)',
   zIndex: 300,
-  '@media (prefers-color-scheme: dark)': {
+  '[data-theme=dark] &': {
     background: 'rgba(44,44,42,0.88)',
     borderColor: 'rgba(255,255,255,0.08)',
     boxShadow: '0 20px 44px rgba(0,0,0,0.28)',
@@ -82,7 +93,7 @@ const sepStyle = css({
   background: 'rgba(0,0,0,0.1)',
   margin: '0 4px',
   flexShrink: 0,
-  '@media (prefers-color-scheme: dark)': { background: 'rgba(255,255,255,0.1)' },
+  '[data-theme=dark] &': { background: 'rgba(255,255,255,0.1)' },
 })
 
 const btnStyle = css({
@@ -100,7 +111,7 @@ const btnStyle = css({
   whiteSpace: 'nowrap',
   height: '30px',
   '&:hover': { background: '#f0ede8' },
-  '@media (prefers-color-scheme: dark)': {
+  '[data-theme=dark] &': {
     color: '#f5f3ee',
     '&:hover': { background: '#3d3d3a' },
   },
@@ -117,7 +128,7 @@ const menuStyle = css({
   padding: '5px',
   minWidth: '180px',
   zIndex: 500,
-  '@media (prefers-color-scheme: dark)': {
+  '[data-theme=dark] &': {
     background: '#2c2c2a',
     borderColor: 'rgba(255,255,255,0.12)',
   },
@@ -133,7 +144,7 @@ const menuItemStyle = css({
   alignItems: 'center',
   gap: '8px',
   '&:hover': { background: '#f5f3ee' },
-  '@media (prefers-color-scheme: dark)': {
+  '[data-theme=dark] &': {
     color: '#f5f3ee',
     '&:hover': { background: '#3d3d3a' },
   },
@@ -143,13 +154,13 @@ const menuSepStyle = css({
   height: '0.5px',
   background: 'rgba(0,0,0,0.08)',
   margin: '4px 0',
-  '@media (prefers-color-scheme: dark)': { background: 'rgba(255,255,255,0.08)' },
+  '[data-theme=dark] &': { background: 'rgba(255,255,255,0.08)' },
 })
 
 export default function Topbar() {
   const [editOpen, setEditOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const { addBox, addText, clearAll, selectNode, selectText, startEditText, interactionMode, setInteractionMode, zoom, setZoom } = useDiagram()
+  const { addBox, addText, clearAll, selectNode, selectText, startEditText, interactionMode, setInteractionMode, zoom, setZoom, theme, toggleTheme } = useDiagram()
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -204,16 +215,21 @@ export default function Topbar() {
       </div>
       <div className={sepStyle} />
       <button
-        className={btnStyle + ' ' + (interactionMode === 'select' ? css({ background: '#f0ede8', '@media (prefers-color-scheme: dark)': { background: '#3d3d3a' } }) : '')}
+        className={btnStyle + ' ' + (interactionMode === 'select' ? css({ background: '#f0ede8', '[data-theme=dark] &': { background: '#3d3d3a' } }) : '')}
         onClick={() => setInteractionMode('select')}
       >
         <IconCursor /> Select
       </button>
       <button
-        className={btnStyle + ' ' + (interactionMode === 'move' ? css({ background: '#f0ede8', '@media (prefers-color-scheme: dark)': { background: '#3d3d3a' } }) : '')}
+        className={btnStyle + ' ' + (interactionMode === 'move' ? css({ background: '#f0ede8', '[data-theme=dark] &': { background: '#3d3d3a' } }) : '')}
         onClick={() => setInteractionMode('move')}
       >
         <IconHand /> Move
+      </button>
+      <div className={sepStyle} />
+      <button className={btnStyle} onClick={toggleTheme}>
+        {theme === 'dark' ? <IconSun /> : <IconMoon />}
+        {theme === 'dark' ? 'Light' : 'Dark'}
       </button>
       <div className={sepStyle} />
       <button className={btnStyle} onClick={() => updateZoom(-0.1)}><IconMinus /></button>

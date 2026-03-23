@@ -8,6 +8,7 @@ import { useDiagram } from './store/diagramStore'
 
 export default function App() {
   const {
+    theme,
     deselectAll,
     cancelConnect,
     deleteMultiSel,
@@ -30,6 +31,11 @@ export default function App() {
     editingTextId,
     finishEditText,
   } = useDiagram()
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    document.documentElement.style.colorScheme = theme
+  }, [theme])
 
   useEffect(() => {
     const getFallbackPoint = () => {
@@ -86,7 +92,7 @@ export default function App() {
       height: '100vh',
       overflow: 'hidden',
       background: 'linear-gradient(180deg, #ece8e0 0%, #e7e1d7 100%)',
-      '@media (prefers-color-scheme: dark)': {
+      '[data-theme=dark] &': {
         background: 'linear-gradient(180deg, #171715 0%, #121210 100%)',
       },
     })}>

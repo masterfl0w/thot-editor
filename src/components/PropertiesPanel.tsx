@@ -30,7 +30,7 @@ const panelStyle = css({
   flexDirection: 'column',
   overflow: 'hidden',
   zIndex: 280,
-  '@media (prefers-color-scheme: dark)': {
+  '[data-theme=dark] &': {
     background: 'rgba(44,44,42,0.88)',
     borderColor: 'rgba(255,255,255,0.08)',
     boxShadow: '0 20px 44px rgba(0,0,0,0.24)',
@@ -40,21 +40,21 @@ const panelStyle = css({
 const headerStyle = css({
   padding: '12px 16px 8px',
   borderBottom: '0.5px solid rgba(0,0,0,0.08)',
-  '@media (prefers-color-scheme: dark)': { borderColor: 'rgba(255,255,255,0.08)' },
+  '[data-theme=dark] &': { borderColor: 'rgba(255,255,255,0.08)' },
 })
 
 const titleStyle = css({
   fontSize: '13px',
   fontWeight: '500',
   color: '#1a1a18',
-  '@media (prefers-color-scheme: dark)': { color: '#f5f3ee' },
+  '[data-theme=dark] &': { color: '#f5f3ee' },
 })
 
 const subStyle = css({
   fontSize: '11px',
   color: '#888780',
   marginTop: '2px',
-  '@media (prefers-color-scheme: dark)': { color: '#9c9a92' },
+  '[data-theme=dark] &': { color: '#9c9a92' },
 })
 
 const bodyStyle = css({ flex: 1, overflowY: 'auto', padding: '12px 14px' })
@@ -65,7 +65,7 @@ const labelStyle = css({
   color: '#5f5e5a',
   marginBottom: '4px',
   display: 'block',
-  '@media (prefers-color-scheme: dark)': { color: '#9c9a92' },
+  '[data-theme=dark] &': { color: '#9c9a92' },
 })
 
 const inputStyle = css({
@@ -80,7 +80,7 @@ const inputStyle = css({
   fontFamily: 'inherit',
   transition: 'border-color 0.15s',
   '&:focus': { borderColor: 'rgba(0,0,0,0.35)' },
-  '@media (prefers-color-scheme: dark)': {
+  '[data-theme=dark] &': {
     background: '#3d3d3a',
     borderColor: 'rgba(255,255,255,0.15)',
     color: '#f5f3ee',
@@ -92,7 +92,7 @@ const sepStyle = css({
   height: '0.5px',
   background: 'rgba(0,0,0,0.08)',
   margin: '12px 0',
-  '@media (prefers-color-scheme: dark)': { background: 'rgba(255,255,255,0.08)' },
+  '[data-theme=dark] &': { background: 'rgba(255,255,255,0.08)' },
 })
 
 const actionBtnStyle = css({
@@ -111,7 +111,7 @@ const actionBtnStyle = css({
   transition: 'background 0.12s',
   marginBottom: '6px',
   '&:hover': { background: '#ede9e3' },
-  '@media (prefers-color-scheme: dark)': {
+  '[data-theme=dark] &': {
     background: '#3d3d3a',
     borderColor: 'rgba(255,255,255,0.12)',
     color: '#f5f3ee',
@@ -121,7 +121,7 @@ const actionBtnStyle = css({
 
 const dangerBtnStyle = css({
   color: '#c0392b !important',
-  '@media (prefers-color-scheme: dark)': { color: '#e57373 !important' },
+  '[data-theme=dark] &': { color: '#e57373 !important' },
 })
 
 const fmtBtnStyle = css({
@@ -139,7 +139,7 @@ const fmtBtnStyle = css({
   color: '#5f5e5a',
   transition: 'background 0.12s',
   '&:hover': { background: '#ede9e3', color: '#1a1a18' },
-  '@media (prefers-color-scheme: dark)': {
+  '[data-theme=dark] &': {
     background: '#3d3d3a',
     borderColor: 'rgba(255,255,255,0.12)',
     color: '#f5f3ee',
@@ -151,7 +151,7 @@ const fmtBtnOnStyle = css({
   background: '#1a1a18 !important',
   color: '#fff !important',
   borderColor: '#1a1a18 !important',
-  '@media (prefers-color-scheme: dark)': {
+  '[data-theme=dark] &': {
     background: '#f5f3ee !important',
     color: '#1a1a18 !important',
     borderColor: '#f5f3ee !important',
@@ -171,7 +171,7 @@ const alignBtnStyle = css({
   color: '#5f5e5a',
   transition: 'background 0.12s',
   '&:hover': { background: '#ede9e3' },
-  '@media (prefers-color-scheme: dark)': {
+  '[data-theme=dark] &': {
     background: '#3d3d3a',
     borderColor: 'rgba(255,255,255,0.12)',
     color: '#f5f3ee',
@@ -183,7 +183,7 @@ const colorLabelStyle = css({
   fontSize: '12px',
   color: '#5f5e5a',
   flex: 1,
-  '@media (prefers-color-scheme: dark)': { color: '#9c9a92' },
+  '[data-theme=dark] &': { color: '#9c9a92' },
 })
 
 const fAutoStyle = css({
@@ -195,7 +195,7 @@ const fAutoStyle = css({
   color: '#5f5e5a',
   cursor: 'pointer',
   '&:hover': { background: '#ede9e3' },
-  '@media (prefers-color-scheme: dark)': {
+  '[data-theme=dark] &': {
     background: '#3d3d3a',
     borderColor: 'rgba(255,255,255,0.12)',
     color: '#f5f3ee',
@@ -222,7 +222,7 @@ const swatchStyle = css({
     transform: 'translateY(-1px)',
     boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.5), 0 4px 10px rgba(0,0,0,0.08)',
   },
-  '@media (prefers-color-scheme: dark)': {
+  '[data-theme=dark] &': {
     borderColor: 'rgba(255,255,255,0.14)',
     '&:hover': {
       boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.35), 0 4px 10px rgba(0,0,0,0.2)',

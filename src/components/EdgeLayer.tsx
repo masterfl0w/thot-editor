@@ -5,9 +5,9 @@ import type { PortSide } from '../types'
 type TooltipState = { x: number; y: number; label: string; desc: string } | null
 type EdgeEndpoints = { sx: number; sy: number; ex: number; ey: number }
 export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElement | null> }) {
-  const { edges, nodes, selEdge, selectEdge, cmode, csrc, csrcSide, pointer, viewport, zoom } = useDiagram()
+  const { edges, nodes, selEdge, selectEdge, cmode, csrc, csrcSide, pointer, viewport, zoom, theme } = useDiagram()
   const [tooltip, setTooltip] = useState<TooltipState>(null)
-  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  const isDark = theme === 'dark'
 
   const screenToWorld = (x: number, y: number) => ({
     x: x / zoom + viewport.x,

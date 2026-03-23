@@ -9,6 +9,7 @@ function useGrid(
   gridRef: React.RefObject<HTMLCanvasElement | null>,
   viewport: { x: number; y: number },
   zoom: number,
+  theme: 'light' | 'dark',
 ) {
   const draw = useCallback(() => {
     const gc = gridRef.current?.getContext('2d')
@@ -19,7 +20,7 @@ function useGrid(
     gridRef.current!.height = H
     gc.clearRect(0, 0, W, H)
     const step = 24 * zoom
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isDark = theme === 'dark'
     gc.fillStyle = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
     const startX = ((-(viewport.x * zoom) % step) + step) % step
     const startY = ((-(viewport.y * zoom) % step) + step) % step
@@ -27,15 +28,13 @@ function useGrid(
       for (let y = startY; y < H; y += step) {
         gc.beginPath(); gc.arc(x, y, 1, 0, Math.PI * 2); gc.fill()
       }
-  }, [canvasRef, gridRef, viewport.x, viewport.y, zoom])
+  }, [canvasRef, gridRef, viewport.x, viewport.y, zoom, theme])
 
   useEffect(() => {
     draw()
     window.addEventListener('resize', draw)
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw)
     return () => {
       window.removeEventListener('resize', draw)
-      window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', draw)
     }
   }, [draw])
 }
@@ -59,12 +58,13 @@ export default function Canvas() {
     setPointer,
     setViewport,
     setZoom,
+    theme,
   } = useDiagram()
 
   const cwRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLCanvasElement>(null)
   const [isPanning, setIsPanning] = useState(false)
-  useGrid(cwRef, gridRef, viewport, zoom)
+  useGrid(cwRef, gridRef, viewport, zoom, theme)
 
   // Lasso
   const lassoRef = useRef({ active: false, x0: 0, y0: 0 })
@@ -194,7 +194,7 @@ export default function Canvas() {
     setViewport({ x: viewport.x + e.deltaX / zoom, y: viewport.y + e.deltaY / zoom })
   }
 
-  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  const isDark = theme === 'dark'
 
   return (
     <div
