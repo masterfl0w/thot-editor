@@ -14,6 +14,13 @@ export function autoFg(bg: string): string {
   return lum(bg) > 0.35 ? '#1a1a18' : '#f5f3ee'
 }
 
+export function autoBorder(bg: string): string {
+  if (/^#[0-9a-fA-F]{6}$/.test(bg)) {
+    return lum(bg) > 0.35 ? adjHex(bg, -28) : adjHex(bg, 28)
+  }
+  return bg === 'transparent' ? 'rgba(0,0,0,0.16)' : 'rgba(255,255,255,0.2)'
+}
+
 export function adjHex(hex: string, amt: number): string {
   return '#' + [1, 3, 5].map(i =>
     Math.max(0, Math.min(255, parseInt(hex.slice(i, i + 2), 16) + amt))

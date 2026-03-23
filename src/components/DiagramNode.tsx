@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from 'react'
-import { useDiagram } from '../store/diagramStore'
+import { autoBorder, useDiagram } from '../store/diagramStore'
 import type { DiagramNode as DiagramNodeType, PortSide } from '../types'
 
 const THRESH = 6
@@ -202,7 +202,8 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
     }
   }
 
-  const borderColor = isSelected ? '#6c6cff' : isConnSrc ? '#22c57a' : (isChild ? 'rgba(255,255,255,0.25)' : 'transparent')
+  const baseBorderColor = autoBorder(node.bg)
+  const borderColor = isSelected ? '#6c6cff' : isConnSrc ? '#22c57a' : baseBorderColor
   const multiBorderColor = isMultiSel ? '#4f7cff' : borderColor
   const boxShadow = isSelected
     ? '0 0 0 3px rgba(108,108,255,0.18)'
