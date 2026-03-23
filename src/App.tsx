@@ -82,16 +82,19 @@ export default function App() {
 
   return (
     <div className={css({
-      display: 'flex',
-      flexDirection: 'column',
+      position: 'relative',
       height: '100vh',
       overflow: 'hidden',
+      background: 'linear-gradient(180deg, #ece8e0 0%, #e7e1d7 100%)',
+      '@media (prefers-color-scheme: dark)': {
+        background: 'linear-gradient(180deg, #171715 0%, #121210 100%)',
+      },
     })}>
       <Topbar />
-      <div className={css({ display: 'flex', flex: 1, overflow: 'hidden' })}>
-        <PropertiesPanel />
+      <div className={css({ position: 'absolute', inset: 0 })}>
         <Canvas />
       </div>
+      <PropertiesPanel />
       <ContextMenu />
     </div>
   )

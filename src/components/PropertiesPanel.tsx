@@ -2,16 +2,25 @@ import { css } from '../../styled-system/css'
 import { useDiagram, autoFg } from '../store/diagramStore'
 
 const panelStyle = css({
+  position: 'absolute',
+  top: '80px',
+  left: '16px',
   width: '240px',
   minWidth: '240px',
-  background: '#fff',
-  borderRight: '0.5px solid rgba(0,0,0,0.08)',
+  maxHeight: 'calc(100vh - 96px)',
+  background: 'rgba(255,255,255,0.88)',
+  border: '0.5px solid rgba(0,0,0,0.08)',
+  borderRadius: '24px',
+  boxShadow: '0 18px 40px rgba(25,25,20,0.1)',
+  backdropFilter: 'blur(18px)',
   display: 'flex',
   flexDirection: 'column',
   overflow: 'hidden',
+  zIndex: 280,
   '@media (prefers-color-scheme: dark)': {
-    background: '#2c2c2a',
+    background: 'rgba(44,44,42,0.88)',
     borderColor: 'rgba(255,255,255,0.08)',
+    boxShadow: '0 20px 44px rgba(0,0,0,0.24)',
   },
 })
 

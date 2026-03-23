@@ -53,19 +53,26 @@ const IconPlus = () => (
 )
 
 const topbarStyle = css({
-  height: '42px',
-  minHeight: '42px',
-  background: '#fff',
-  borderBottom: '0.5px solid rgba(0,0,0,0.1)',
+  height: '48px',
+  minHeight: '48px',
+  background: 'rgba(255,255,255,0.9)',
+  border: '0.5px solid rgba(0,0,0,0.08)',
+  borderRadius: '18px',
+  boxShadow: '0 18px 40px rgba(25,25,20,0.12)',
+  backdropFilter: 'blur(18px)',
   display: 'flex',
   alignItems: 'center',
-  padding: '0 10px',
+  padding: '0 12px',
   gap: '2px',
-  position: 'relative',
-  zIndex: 200,
+  position: 'absolute',
+  top: '16px',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  zIndex: 300,
   '@media (prefers-color-scheme: dark)': {
-    background: '#2c2c2a',
+    background: 'rgba(44,44,42,0.88)',
     borderColor: 'rgba(255,255,255,0.08)',
+    boxShadow: '0 20px 44px rgba(0,0,0,0.28)',
   },
 })
 
@@ -101,7 +108,7 @@ const btnStyle = css({
 
 const menuStyle = css({
   position: 'absolute',
-  top: '36px',
+  top: '44px',
   left: 0,
   background: '#fff',
   border: '0.5px solid rgba(0,0,0,0.15)',
