@@ -1,14 +1,49 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { css } from '../styled-system/css'
 import Topbar from './components/Topbar'
 import PropertiesPanel from './components/PropertiesPanel'
 import Canvas from './components/Canvas'
 import ContextMenu from './components/ContextMenu'
+import LandingPage from './components/LandingPage'
 import { useDiagram } from './store/diagramStore'
 
-export default function App() {
+function DemoTopbar() {
+  return (
+    <div
+      className={css({
+        position: 'absolute',
+        top: '14px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 300,
+        height: '38px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '0 20px',
+        borderRadius: '12px',
+        background: 'rgba(44,44,42,0.84)',
+        border: '0.5px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 12px 28px rgba(0,0,0,0.22)',
+        backdropFilter: 'blur(16px)',
+        color: '#f5f3ee',
+      })}
+    >
+      <img
+        src="/thot_dark_icon_transparency.svg"
+        alt="Thot Editor"
+        style={{ height: 15, width: 'auto', filter: 'brightness(0) invert(1)', opacity: 0.92 }}
+      />
+      <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
+      <span style={{ fontSize: 11, color: 'rgba(245,243,238,0.66)', whiteSpace: 'nowrap' }}>
+        Drag nodes to explore the live demo
+      </span>
+    </div>
+  )
+}
+
+function EditorWorkspace({ miniDemo = false }: { miniDemo?: boolean }) {
   const {
-    theme,
     deselectAll,
     cancelConnect,
     deleteMultiSel,
@@ -39,11 +74,89 @@ export default function App() {
     editingTextId,
     finishEditText,
   } = useDiagram()
+  const demoSeeded = useRef(false)
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme
-    document.documentElement.style.colorScheme = theme
-  }, [theme])
+    if (!miniDemo || demoSeeded.current) return
+    demoSeeded.current = true
+    useDiagram.setState({
+      nodes: {
+        n1: {
+          id: 'n1',
+          title: 'Frontend',
+          desc: 'Tauri WebView\nCode editor\nChat panel',
+          bg: '#e8e6ff',
+          fg: '#1a1a18',
+          shape: 'rect',
+          family: 'inherit',
+          size: 13,
+          bold: false,
+          italic: false,
+          underline: false,
+          strike: false,
+          radius: 10,
+          x: 96,
+          y: 132,
+          parent: null,
+          children: [],
+        },
+        n2: {
+          id: 'n2',
+          title: 'Rust backend',
+          desc: 'LLM proxy\nFilesystem\nContext builder',
+          bg: '#ffd7b8',
+          fg: '#1a1a18',
+          shape: 'rect',
+          family: 'inherit',
+          size: 13,
+          bold: false,
+          italic: false,
+          underline: false,
+          strike: false,
+          radius: 10,
+          x: 420,
+          y: 248,
+          parent: null,
+          children: [],
+        },
+      },
+      edges: [{
+        from: 'n1',
+        to: 'n2',
+        fromSide: 'pr',
+        toSide: 'pl',
+        label: '',
+        desc: '',
+        color: '#cbc7bf',
+        style: 'solid',
+        arrow: 'end',
+        route: 'curve',
+        bend: 24,
+      }],
+      theme: 'dark',
+      layoutMode: 'free',
+      viewport: { x: 0, y: 0 },
+      zoom: 1,
+      interactionMode: 'select',
+      selNode: null,
+      selText: null,
+      selEdge: null,
+      multiSel: new Set(),
+      cmode: false,
+      csrc: null,
+      csrcSide: null,
+      editingTextId: null,
+      ctxTarget: null,
+      historyPast: [],
+      historyFuture: [],
+      actionHistory: [],
+      sceneClipboard: null,
+      pointer: null,
+      modeText: 'Demo mode',
+      nc: 2,
+      tc: 1,
+    })
+  }, [miniDemo])
 
   useEffect(() => {
     const getFallbackPoint = () => {
@@ -139,7 +252,38 @@ export default function App() {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [editingTextId, cmode, selNode, selText, selEdge, multiSel, layoutMode, nodes, texts, viewport.x, viewport.y, pointer, zoom, copySelectionToClipboard, pasteClipboard, moveNode, moveText, undo])
+  }, [
+    editingTextId,
+    cmode,
+    selNode,
+    selText,
+    selEdge,
+    multiSel,
+    layoutMode,
+    nodes,
+    texts,
+    viewport.x,
+    viewport.y,
+    pointer,
+    zoom,
+    copySelectionToClipboard,
+    pasteClipboard,
+    moveNode,
+    moveText,
+    undo,
+    deselectAll,
+    cancelConnect,
+    deleteMultiSel,
+    deleteNode,
+    deleteText,
+    deleteEdge,
+    addBox,
+    addText,
+    selectNode,
+    selectText,
+    startEditText,
+    finishEditText,
+  ])
 
   return (
     <div className={css({
@@ -152,12 +296,54 @@ export default function App() {
         background: 'linear-gradient(180deg, #171715 0%, #121210 100%)',
       },
     })}>
-      <Topbar />
+      {miniDemo ? <DemoTopbar /> : <Topbar />}
       <div className={css({ position: 'absolute', inset: 0 })}>
         <Canvas />
       </div>
-      <PropertiesPanel />
+      {!miniDemo && <PropertiesPanel />}
       <ContextMenu />
     </div>
   )
+}
+
+export default function App() {
+  const { theme } = useDiagram()
+  const [screen, setScreen] = useState<'landing' | 'editor' | 'demo'>(() =>
+    window.location.hash === '#editor' ? 'editor' : window.location.hash === '#demo' ? 'demo' : 'landing',
+  )
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    document.documentElement.style.colorScheme = theme
+  }, [theme])
+
+  useEffect(() => {
+    document.body.style.overflow = screen === 'landing' ? 'auto' : 'hidden'
+    return () => {
+      document.body.style.overflow = 'hidden'
+    }
+  }, [screen])
+
+  useEffect(() => {
+    const syncFromHash = () => {
+      setScreen(window.location.hash === '#editor' ? 'editor' : window.location.hash === '#demo' ? 'demo' : 'landing')
+    }
+    window.addEventListener('hashchange', syncFromHash)
+    return () => window.removeEventListener('hashchange', syncFromHash)
+  }, [])
+
+  const enterEditor = () => {
+    window.location.hash = 'editor'
+    setScreen('editor')
+  }
+
+  if (screen === 'landing') {
+    return <LandingPage onEnterEditor={enterEditor} />
+  }
+
+  if (screen === 'demo') {
+    return <EditorWorkspace miniDemo />
+  }
+
+  return <EditorWorkspace />
 }

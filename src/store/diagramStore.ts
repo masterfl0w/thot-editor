@@ -114,7 +114,9 @@ interface DiagramState {
 
 const DEFAULT_MODE = 'Select mode: drag to multi-select · Shift-click to add to selection · Right-click to add'
 const MOVE_MODE = 'Move mode: drag or scroll to pan · Right-click to add'
-const STORAGE_KEY = 'thot-editor-workspace'
+const STORAGE_KEY = typeof window !== 'undefined' && window.location.hash === '#demo'
+  ? 'thot-editor-demo-workspace'
+  : 'thot-editor-workspace'
 const SNAP_STEP = 24
 const MAX_UNDO = 50
 const MAX_ACTION_HISTORY = 120
