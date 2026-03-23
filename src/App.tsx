@@ -6,6 +6,7 @@ import Canvas from './components/Canvas'
 import ContextMenu from './components/ContextMenu'
 import LandingPage from './components/LandingPage'
 import { useDiagram } from './store/diagramStore'
+import { ensureCollaborationFromUrl } from './utils/collaboration'
 
 function ToastViewport() {
   const { toasts, removeToast } = useDiagram()
@@ -353,7 +354,11 @@ function EditorWorkspace({ miniDemo = false }: { miniDemo?: boolean }) {
 export default function App() {
   const { theme } = useDiagram()
   const [screen, setScreen] = useState<'landing' | 'editor' | 'demo'>(() =>
-    window.location.hash === '#editor' ? 'editor' : window.location.hash === '#demo' ? 'demo' : 'landing',
+    window.location.hash === '#editor' || !!new URLSearchParams(window.location.search).get('collab')
+      ? 'editor'
+      : window.location.hash === '#demo'
+        ? 'demo'
+        : 'landing',
   )
 
   useEffect(() => {
@@ -370,11 +375,24 @@ export default function App() {
 
   useEffect(() => {
     const syncFromHash = () => {
-      setScreen(window.location.hash === '#editor' ? 'editor' : window.location.hash === '#demo' ? 'demo' : 'landing')
+      setScreen(
+        window.location.hash === '#editor' || !!new URLSearchParams(window.location.search).get('collab')
+          ? 'editor'
+          : window.location.hash === '#demo'
+            ? 'demo'
+            : 'landing',
+      )
     }
     window.addEventListener('hashchange', syncFromHash)
     return () => window.removeEventListener('hashchange', syncFromHash)
   }, [])
+
+  useEffect(() => {
+    if (screen === 'demo') return
+    if (ensureCollaborationFromUrl()) {
+      setScreen('editor')
+    }
+  }, [screen])
 
   const enterEditor = () => {
     window.location.hash = 'editor'

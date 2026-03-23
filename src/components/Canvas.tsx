@@ -58,6 +58,7 @@ export default function Canvas() {
     setViewport,
     setZoom,
     theme,
+    collaboration,
   } = useDiagram()
 
   const cwRef = useRef<HTMLDivElement>(null)
@@ -194,6 +195,7 @@ export default function Canvas() {
   }
 
   const isDark = theme === 'dark'
+  const remoteParticipants = collaboration.participants.filter(participant => !participant.self && participant.pointer)
 
   return (
     <div
@@ -211,6 +213,7 @@ export default function Canvas() {
       }}
       onMouseDown={onCanvasMouseDown}
       onMouseMove={onPointerMove}
+      onMouseLeave={() => setPointer(null)}
       onContextMenu={onContextMenu}
       onWheel={onWheel}
     >
@@ -255,6 +258,65 @@ export default function Canvas() {
           zIndex: 50,
         }} />
       )}
+
+      {remoteParticipants.map(participant => {
+        if (!participant.pointer) return null
+        const left = (participant.pointer.x - viewport.x) * zoom
+        const top = (participant.pointer.y - viewport.y) * zoom
+        return (
+          <div
+            key={participant.id}
+            style={{
+              position: 'absolute',
+              left,
+              top,
+              transform: 'translate(-2px, -2px)',
+              pointerEvents: 'none',
+              zIndex: 180,
+            }}
+          >
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: participant.color,
+                border: `2px solid ${isDark ? '#121210' : '#f5f3ee'}`,
+                boxShadow: '0 6px 14px rgba(0,0,0,0.18)',
+              }}
+            />
+            <div
+              style={{
+                marginTop: 6,
+                marginLeft: 10,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '5px 9px',
+                borderRadius: 999,
+                background: isDark ? '#2c2c2a' : '#ffffff',
+                border: `0.5px solid ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)'}`,
+                boxShadow: '0 12px 22px rgba(0,0,0,0.14)',
+                color: isDark ? '#f5f3ee' : '#1a1a18',
+                fontSize: 11,
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: participant.color,
+                  flexShrink: 0,
+                }}
+              />
+              {participant.name}
+            </div>
+          </div>
+        )
+      })}
 
       {/* Version bar */}
       <div style={{

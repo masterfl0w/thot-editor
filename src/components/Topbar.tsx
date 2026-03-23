@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { css } from '../../styled-system/css'
 import { useDiagram } from '../store/diagramStore'
 import { saveWorkspaceAsPng, saveWorkspaceAsSvg } from '../utils/selectionExport'
+import { copyInviteLink, kickCollaborator, startHostedCollaboration, stopCollaboration } from '../utils/collaboration'
 
 // Shared SVG icons
 export const IconBox = () => (
@@ -104,6 +105,21 @@ const IconImport = () => (
 const IconExport = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
     <path d="M6.5 10.8V5.4M4.4 7.4l2.1-2.1 2.1 2.1M2.4 3.3h8.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+const IconUsers = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <path d="M5 6a1.8 1.8 0 100-3.6A1.8 1.8 0 005 6zm3.9-.7a1.4 1.4 0 100-2.8 1.4 1.4 0 000 2.8zM2.5 10.4c.3-1.4 1.5-2.3 3-2.3s2.7.9 3 2.3M8 10.3c.2-.8.8-1.5 1.7-1.8.6-.2 1.2-.2 1.8 0" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+const IconLink = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <path d="M5.2 7.8l2.6-2.6M4.1 8.9l-1 .9a1.8 1.8 0 102.6 2.6l1-.9M8.9 4.1l1-.9a1.8 1.8 0 112.6 2.6l-1 .9" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+const IconUserMinus = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <path d="M4.8 6a1.8 1.8 0 100-3.6A1.8 1.8 0 004.8 6zm-2.2 4.4c.3-1.4 1.5-2.3 3-2.3s2.7.9 3 2.3M8.8 4.6h3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 )
 
@@ -229,6 +245,7 @@ export default function Topbar() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [collabOpen, setCollabOpen] = useState(false)
   const [importJson, setImportJson] = useState('')
   const editRef = useRef<HTMLDivElement>(null)
   const settingsRef = useRef<HTMLDivElement>(null)
@@ -239,6 +256,7 @@ export default function Topbar() {
     theme, setTheme, layoutMode, setLayoutMode, actionHistory, historyPast, undo, exportWorkspace, importWorkspace,
     nodes, texts, edges, selNode, selText, selEdge, multiSel,
     pushToast,
+    collaboration,
   } = useDiagram()
 
   useEffect(() => {
@@ -315,6 +333,11 @@ export default function Topbar() {
     setImportOpen(true)
   }
 
+  const doOpenCollaboration = () => {
+    setMoreOpen(false)
+    setCollabOpen(true)
+  }
+
   const doImportJson = () => {
     try {
       const parsed = JSON.parse(importJson)
@@ -329,6 +352,51 @@ export default function Topbar() {
       pushToast('error', 'Unable to import this JSON payload')
     }
   }
+
+  const doStartCollaboration = async () => {
+    try {
+      const link = startHostedCollaboration()
+      await navigator.clipboard.writeText(link ?? '')
+      pushToast('success', 'Collaboration opened. Invite link copied.')
+      setCollabOpen(true)
+    } catch {
+      pushToast('error', 'Unable to start collaboration')
+    }
+  }
+
+  const doCopyInvite = async () => {
+    try {
+      const ok = await copyInviteLink()
+      if (!ok) {
+        pushToast('error', 'No active collaboration link')
+        return
+      }
+      pushToast('success', 'Invite link copied')
+    } catch {
+      pushToast('error', 'Unable to copy invite link')
+    }
+  }
+
+  const doLeaveOrCloseCollaboration = () => {
+    stopCollaboration()
+    setCollabOpen(false)
+    pushToast('success', collaboration.isHost ? 'Collaboration closed' : 'Left collaborative workspace')
+  }
+
+  const doKickParticipant = (id: string, name: string) => {
+    try {
+      if (!kickCollaborator(id)) {
+        pushToast('error', 'Unable to remove this participant')
+        return
+      }
+      pushToast('success', `${name} removed from workspace`)
+    } catch {
+      pushToast('error', 'Unable to remove this participant')
+    }
+  }
+
+  const modalTextColor = theme === 'dark' ? '#f5f3ee' : '#1a1a18'
+  const modalSubtleColor = theme === 'dark' ? '#b8b3aa' : '#888780'
 
   return (
     <>
@@ -435,6 +503,10 @@ export default function Topbar() {
             <div className={menuItemStyle} onClick={doExportJson}>
               <IconExport /> Export to JSON
             </div>
+            <div className={menuSepStyle} />
+            <div className={menuItemStyle} onClick={doOpenCollaboration}>
+              <IconUsers /> Collaboration
+            </div>
           </div>
         )}
       </div>
@@ -469,10 +541,10 @@ export default function Topbar() {
           })}
           onClick={e => e.stopPropagation()}
         >
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--modal-title, #1a1a18)', marginBottom: 6 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: modalTextColor, marginBottom: 6 }}>
             Import from JSON
           </div>
-          <div style={{ fontSize: 13, lineHeight: 1.6, color: '#888780', marginBottom: 14 }}>
+          <div style={{ fontSize: 13, lineHeight: 1.6, color: modalSubtleColor, marginBottom: 14 }}>
             Paste a Thot workspace JSON payload to replace the current graph.
           </div>
           <textarea
@@ -515,6 +587,195 @@ export default function Topbar() {
               onClick={doImportJson}
             >
               Import JSON
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    {collabOpen && (
+      <div
+        className={css({
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(18,18,16,0.36)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 900,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+        })}
+        onClick={() => setCollabOpen(false)}
+      >
+        <div
+          className={css({
+            width: 'min(720px, 100%)',
+            borderRadius: '22px',
+            background: '#fff',
+            border: '0.5px solid rgba(0,0,0,0.1)',
+            boxShadow: '0 28px 80px rgba(0,0,0,0.18)',
+            padding: '18px',
+            '[data-theme=dark] &': {
+              background: '#2c2c2a',
+              borderColor: 'rgba(255,255,255,0.08)',
+            },
+          })}
+          onClick={e => e.stopPropagation()}
+        >
+          <div style={{ fontSize: 18, fontWeight: 700, color: modalTextColor, marginBottom: 6 }}>
+            Collaboration
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.6, color: modalSubtleColor, marginBottom: 14 }}>
+            Open this workspace to collaborators with a magic link. Live edits stay synced, and the host keeps the local saved workspace.
+          </div>
+
+          {!collaboration.active ? (
+            <div
+              className={css({
+                borderRadius: '18px',
+                border: '0.5px solid rgba(0,0,0,0.1)',
+                padding: '16px',
+                background: '#f8f6f2',
+                '[data-theme=dark] &': {
+                  background: '#1f1f1d',
+                  borderColor: 'rgba(255,255,255,0.08)',
+                },
+              })}
+            >
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6, color: modalTextColor }}>
+                Start a shared session
+              </div>
+              <div style={{ fontSize: 12, lineHeight: 1.6, color: modalSubtleColor, marginBottom: 12 }}>
+                Guests can edit the board, and you can track live cursors, remove participants, or close the room at any moment.
+              </div>
+              <button
+                className={btnStyle + ' ' + css({
+                  background: '#1a1a18 !important',
+                  color: '#f5f3ee !important',
+                  '[data-theme=dark] &': { background: '#f5f3ee !important', color: '#1a1a18 !important' },
+                })}
+                onClick={() => { void doStartCollaboration() }}
+              >
+                <IconUsers /> Open collaboration
+              </button>
+            </div>
+          ) : (
+            <>
+              <div
+                className={css({
+                  borderRadius: '18px',
+                  border: '0.5px solid rgba(0,0,0,0.1)',
+                  padding: '16px',
+                  background: '#f8f6f2',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  '[data-theme=dark] &': {
+                    background: '#1f1f1d',
+                    borderColor: 'rgba(255,255,255,0.08)',
+                  },
+                })}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4, color: modalTextColor }}>
+                      {collaboration.isHost ? 'Hosted collaborative workspace' : 'Shared collaborative workspace'}
+                    </div>
+                    <div style={{ fontSize: 12, color: modalSubtleColor, lineHeight: 1.6 }}>
+                      Room <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}>{collaboration.roomId}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: modalSubtleColor, lineHeight: 1.6 }}>
+                      You are {collaboration.selfName} {collaboration.isHost ? '(host)' : '(guest)'}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      borderRadius: 999,
+                      padding: '6px 10px',
+                      background: 'rgba(108,108,255,0.08)',
+                      color: '#6c6cff',
+                      fontSize: 11,
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: collaboration.selfColor ?? '#6c6cff' }} />
+                    Live sync enabled
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {collaboration.isHost && (
+                    <button className={btnStyle} onClick={() => { void doCopyInvite() }}>
+                      <IconLink /> Copy invite link
+                    </button>
+                  )}
+                  <button
+                    className={btnStyle + ' ' + css({
+                      background: '#1a1a18 !important',
+                      color: '#f5f3ee !important',
+                      '[data-theme=dark] &': { background: '#f5f3ee !important', color: '#1a1a18 !important' },
+                    })}
+                    onClick={doLeaveOrCloseCollaboration}
+                  >
+                    {collaboration.isHost ? 'Close workspace' : 'Leave workspace'}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 12, color: modalSubtleColor, fontWeight: 700, marginBottom: 10 }}>
+                  Participants ({collaboration.participants.length})
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {collaboration.participants.map(participant => (
+                    <div
+                      key={participant.id}
+                      className={css({
+                        borderRadius: '16px',
+                        border: '0.5px solid rgba(0,0,0,0.08)',
+                        background: '#f8f6f2',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '14px',
+                        '[data-theme=dark] &': {
+                          background: '#1f1f1d',
+                          borderColor: 'rgba(255,255,255,0.08)',
+                        },
+                      })}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ width: 12, height: 12, borderRadius: '50%', background: participant.color, flexShrink: 0 }} />
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, color: modalTextColor }}>
+                            {participant.name}
+                            {participant.isHost && <span style={{ fontSize: 10, color: modalSubtleColor }}>HOST</span>}
+                            {participant.self && <span style={{ fontSize: 10, color: modalSubtleColor }}>YOU</span>}
+                          </div>
+                          <div style={{ fontSize: 11, color: modalSubtleColor }}>
+                            {participant.pointer ? 'Cursor active on workspace' : 'Idle'}
+                          </div>
+                        </div>
+                      </div>
+                      {collaboration.isHost && !participant.self && (
+                        <button className={btnStyle} onClick={() => doKickParticipant(participant.id, participant.name)}>
+                          <IconUserMinus /> Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+            <button className={btnStyle} onClick={() => setCollabOpen(false)}>
+              Done
             </button>
           </div>
         </div>

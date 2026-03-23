@@ -16,6 +16,25 @@ export type Toast = {
   message: string
 }
 
+export type CollaboratorPresence = {
+  id: string
+  name: string
+  color: string
+  pointer: { x: number; y: number } | null
+  isHost: boolean
+  self: boolean
+}
+
+export type CollaborationState = {
+  active: boolean
+  roomId: string | null
+  isHost: boolean
+  selfId: string | null
+  selfName: string | null
+  selfColor: string | null
+  participants: CollaboratorPresence[]
+}
+
 function lum(h: string) {
   const r = parseInt(h.slice(1, 3), 16) / 255
   const g = parseInt(h.slice(3, 5), 16) / 255
@@ -73,6 +92,7 @@ interface DiagramState {
   ctxTarget: ContextMenuTarget
   modeText: string
   toasts: Toast[]
+  collaboration: CollaborationState
 
   // actions
   addBox: (opts?: Partial<DiagramNode> & { parent?: string }) => string
@@ -128,8 +148,12 @@ interface DiagramState {
     edges: Edge[]
   }
   importWorkspace: (data: unknown) => boolean
+  applyCollaborativeWorkspace: (data: unknown) => boolean
   pushToast: (kind: 'success' | 'error', message: string) => void
   removeToast: (id: string) => void
+  setCollaborationState: (patch: Partial<CollaborationState>) => void
+  resetCollaborationState: () => void
+  setCollaborationParticipants: (participants: CollaboratorPresence[]) => void
 }
 
 const DEFAULT_MODE = 'Select mode: drag to multi-select · Shift-click to add to selection · Right-click to add'
@@ -140,6 +164,15 @@ const STORAGE_KEY = typeof window !== 'undefined' && window.location.hash === '#
 const SNAP_STEP = 24
 const MAX_UNDO = 50
 const MAX_ACTION_HISTORY = 120
+const EMPTY_COLLABORATION: CollaborationState = {
+  active: false,
+  roomId: null,
+  isHost: false,
+  selfId: null,
+  selfName: null,
+  selfColor: null,
+  participants: [],
+}
 const DEFAULT_THEME: 'light' | 'dark' =
   typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 
@@ -227,6 +260,65 @@ function isEdge(value: unknown): value is Edge {
     && typeof edge.bend === 'number'
 }
 
+function normalizeWorkspaceData(data: unknown) {
+  if (!data || typeof data !== 'object') return null
+  const incoming = data as {
+    theme?: unknown
+    layoutMode?: unknown
+    viewport?: unknown
+    zoom?: unknown
+    nodes?: unknown
+    texts?: unknown
+    edges?: unknown
+  }
+
+  if (incoming.theme !== 'light' && incoming.theme !== 'dark') return null
+  if (incoming.layoutMode !== 'free' && incoming.layoutMode !== 'static') return null
+  if (!incoming.viewport || typeof incoming.viewport !== 'object') return null
+  const viewport = incoming.viewport as { x?: unknown; y?: unknown }
+  if (typeof viewport.x !== 'number' || typeof viewport.y !== 'number') return null
+  if (typeof incoming.zoom !== 'number') return null
+  if (!incoming.nodes || typeof incoming.nodes !== 'object') return null
+  if (!incoming.texts || typeof incoming.texts !== 'object') return null
+  if (!Array.isArray(incoming.edges)) return null
+
+  const nodeEntries = Object.entries(incoming.nodes as Record<string, unknown>)
+  const textEntries = Object.entries(incoming.texts as Record<string, unknown>)
+  if (!nodeEntries.every(([, value]) => isDiagramNode(value))) return null
+  if (!textEntries.every(([, value]) => isTextNode(value))) return null
+  if (!incoming.edges.every(isEdge)) return null
+
+  const nodes = Object.fromEntries(
+    nodeEntries.map(([id, value]) => [id, { ...(value as DiagramNode), children: [...(value as DiagramNode).children] }]),
+  )
+  const texts = Object.fromEntries(
+    textEntries.map(([id, value]) => [id, { ...(value as TextNode) }]),
+  )
+  const edges = incoming.edges.map(edge => ({ ...edge }))
+  const nodeIds = new Set(Object.keys(nodes))
+
+  if (!Object.values(nodes).every(node =>
+    (node.parent === null || nodeIds.has(node.parent))
+    && node.children.every(childId => nodeIds.has(childId)),
+  )) return null
+  if (!edges.every(edge => nodeIds.has(edge.from) && nodeIds.has(edge.to))) return null
+
+  const nextNc = Math.max(0, ...Object.keys(nodes).map(id => Number(id.replace(/^\D+/, '')) || 0))
+  const nextTc = Math.max(0, ...Object.keys(texts).map(id => Number(id.replace(/^\D+/, '')) || 0))
+
+  return {
+    nodes,
+    texts,
+    edges,
+    theme: incoming.theme as 'light' | 'dark',
+    layoutMode: incoming.layoutMode as 'free' | 'static',
+    viewport: { x: viewport.x, y: viewport.y },
+    zoom: incoming.zoom,
+    nc: nextNc,
+    tc: nextTc,
+  }
+}
+
 export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   ...(() => {
     const applyWorkspaceChange = (
@@ -271,6 +363,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   ctxTarget: null,
   modeText: DEFAULT_MODE,
   toasts: [],
+  collaboration: EMPTY_COLLABORATION,
 
   addBox: (opts = {}) => {
     const { nodes, nc, layoutMode } = get()
@@ -801,61 +894,11 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   },
 
   importWorkspace: (data) => {
-    if (!data || typeof data !== 'object') return false
-    const incoming = data as {
-      theme?: unknown
-      layoutMode?: unknown
-      viewport?: unknown
-      zoom?: unknown
-      nodes?: unknown
-      texts?: unknown
-      edges?: unknown
-    }
-
-    if (incoming.theme !== 'light' && incoming.theme !== 'dark') return false
-    if (incoming.layoutMode !== 'free' && incoming.layoutMode !== 'static') return false
-    if (!incoming.viewport || typeof incoming.viewport !== 'object') return false
-    const viewport = incoming.viewport as { x?: unknown; y?: unknown }
-    if (typeof viewport.x !== 'number' || typeof viewport.y !== 'number') return false
-    if (typeof incoming.zoom !== 'number') return false
-    if (!incoming.nodes || typeof incoming.nodes !== 'object') return false
-    if (!incoming.texts || typeof incoming.texts !== 'object') return false
-    if (!Array.isArray(incoming.edges)) return false
-
-    const nodeEntries = Object.entries(incoming.nodes as Record<string, unknown>)
-    const textEntries = Object.entries(incoming.texts as Record<string, unknown>)
-    if (!nodeEntries.every(([, value]) => isDiagramNode(value))) return false
-    if (!textEntries.every(([, value]) => isTextNode(value))) return false
-    if (!incoming.edges.every(isEdge)) return false
-
-    const nodes = Object.fromEntries(
-      nodeEntries.map(([id, value]) => [id, { ...(value as DiagramNode), children: [...(value as DiagramNode).children] }]),
-    )
-    const texts = Object.fromEntries(
-      textEntries.map(([id, value]) => [id, { ...(value as TextNode) }]),
-    )
-    const edges = incoming.edges.map(edge => ({ ...edge }))
-    const nodeIds = new Set(Object.keys(nodes))
-
-    if (!Object.values(nodes).every(node =>
-      (node.parent === null || nodeIds.has(node.parent))
-      && node.children.every(childId => nodeIds.has(childId)),
-    )) return false
-    if (!edges.every(edge => nodeIds.has(edge.from) && nodeIds.has(edge.to))) return false
-
-    const nextNc = Math.max(0, ...Object.keys(nodes).map(id => Number(id.replace(/^\D+/, '')) || 0))
-    const nextTc = Math.max(0, ...Object.keys(texts).map(id => Number(id.replace(/^\D+/, '')) || 0))
+    const normalized = normalizeWorkspaceData(data)
+    if (!normalized) return false
 
     set({
-      nodes,
-      texts,
-      edges,
-      theme: incoming.theme,
-      layoutMode: incoming.layoutMode,
-      viewport: { x: viewport.x, y: viewport.y },
-      zoom: incoming.zoom,
-      nc: nextNc,
-      tc: nextTc,
+      ...normalized,
       selNode: null,
       selText: null,
       selEdge: null,
@@ -876,6 +919,33 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
     return true
   },
 
+  applyCollaborativeWorkspace: (data) => {
+    const normalized = normalizeWorkspaceData(data)
+    if (!normalized) return false
+
+    set(state => ({
+      ...normalized,
+      selNode: null,
+      selText: null,
+      selEdge: null,
+      multiSel: new Set(),
+      cmode: false,
+      csrc: null,
+      csrcSide: null,
+      editingTextId: null,
+      ctxTarget: null,
+      pointer: state.pointer,
+      historyPast: [],
+      historyFuture: [],
+      actionHistory: state.actionHistory,
+      sceneClipboard: state.sceneClipboard,
+      toasts: state.toasts,
+      collaboration: state.collaboration,
+      modeText: 'Live collaboration active',
+    }))
+    return true
+  },
+
   pushToast: (kind, message) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     set(state => ({
@@ -891,6 +961,22 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
 
   removeToast: (id) => set(state => ({
     toasts: state.toasts.filter(toast => toast.id !== id),
+  })),
+
+  setCollaborationState: (patch) => set(state => ({
+    collaboration: {
+      ...state.collaboration,
+      ...patch,
+    },
+  })),
+
+  resetCollaborationState: () => set({ collaboration: EMPTY_COLLABORATION }),
+
+  setCollaborationParticipants: (participants) => set(state => ({
+    collaboration: {
+      ...state.collaboration,
+      participants,
+    },
   })),
 }
   })(),
@@ -926,5 +1012,6 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
     state.sceneClipboard = null
     state.ctxTarget = null
     state.modeText = state.interactionMode === 'move' ? MOVE_MODE : DEFAULT_MODE
+    state.collaboration = EMPTY_COLLABORATION
   },
 }))
