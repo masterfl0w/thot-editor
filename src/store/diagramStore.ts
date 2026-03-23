@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
 import type { DiagramNode, TextNode, Edge, ContextMenuTarget, PortSide } from '../types'
 
 function lum(h: string) {
@@ -77,8 +78,10 @@ interface DiagramState {
 }
 
 const DEFAULT_MODE = 'Select mode: drag to multi-select · Shift-click to add to selection · Right-click to add'
+const MOVE_MODE = 'Move mode: drag or scroll to pan · Right-click to add'
+const STORAGE_KEY = 'thot-editor-workspace'
 
-export const useDiagram = create<DiagramState>((set, get) => ({
+export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   nodes: {},
   texts: {},
   edges: [],
@@ -257,7 +260,7 @@ export const useDiagram = create<DiagramState>((set, get) => ({
       selEdge: null,
       multiSel: new Set(),
       editingTextId: null,
-      modeText: interactionMode === 'move' ? 'Move mode: drag or scroll to pan · Right-click to add' : DEFAULT_MODE,
+      modeText: interactionMode === 'move' ? MOVE_MODE : DEFAULT_MODE,
     })
   },
 
@@ -301,7 +304,7 @@ export const useDiagram = create<DiagramState>((set, get) => ({
       selEdge: null,
       multiSel: new Set(),
       editingTextId: null,
-      modeText: interactionMode === 'move' ? 'Move mode: drag or scroll to pan · Right-click to add' : DEFAULT_MODE,
+      modeText: interactionMode === 'move' ? MOVE_MODE : DEFAULT_MODE,
     })
   },
 
@@ -318,7 +321,7 @@ export const useDiagram = create<DiagramState>((set, get) => ({
       cmode: false,
       csrc: null,
       csrcSide: null,
-      modeText: interactionMode === 'move' ? 'Move mode: drag or scroll to pan · Right-click to add' : DEFAULT_MODE,
+      modeText: interactionMode === 'move' ? MOVE_MODE : DEFAULT_MODE,
     })
   },
 
@@ -334,7 +337,7 @@ export const useDiagram = create<DiagramState>((set, get) => ({
     set({
       texts: { ...texts, [id]: { ...texts[id], ...patch } },
       editingTextId: null,
-      modeText: interactionMode === 'move' ? 'Move mode: drag or scroll to pan · Right-click to add' : DEFAULT_MODE,
+      modeText: interactionMode === 'move' ? MOVE_MODE : DEFAULT_MODE,
     })
   },
 
@@ -359,7 +362,7 @@ export const useDiagram = create<DiagramState>((set, get) => ({
   setInteractionMode: (interactionMode) => set({
     interactionMode,
     modeText: interactionMode === 'move'
-      ? 'Move mode: drag or scroll to pan · Right-click to add'
+      ? MOVE_MODE
       : DEFAULT_MODE,
   }),
 
@@ -379,5 +382,32 @@ export const useDiagram = create<DiagramState>((set, get) => ({
     const { texts } = get()
     if (!texts[id]) return
     set({ texts: { ...texts, [id]: { ...texts[id], x, y } } })
+  },
+}), {
+  name: STORAGE_KEY,
+  storage: createJSONStorage(() => localStorage),
+  partialize: (state) => ({
+    nodes: state.nodes,
+    texts: state.texts,
+    edges: state.edges,
+    viewport: state.viewport,
+    zoom: state.zoom,
+    interactionMode: state.interactionMode,
+    nc: state.nc,
+    tc: state.tc,
+  }),
+  onRehydrateStorage: () => (state) => {
+    if (!state) return
+    state.pointer = null
+    state.selNode = null
+    state.selText = null
+    state.selEdge = null
+    state.multiSel = new Set()
+    state.cmode = false
+    state.csrc = null
+    state.csrcSide = null
+    state.editingTextId = null
+    state.ctxTarget = null
+    state.modeText = state.interactionMode === 'move' ? MOVE_MODE : DEFAULT_MODE
   },
 }))
