@@ -4,6 +4,12 @@ export interface DiagramNode {
   desc: string
   bg: string
   fg: string
+  family: string
+  size: number
+  bold: boolean
+  italic: boolean
+  underline: boolean
+  strike: boolean
   radius: number
   x: number
   y: number

@@ -1,6 +1,19 @@
 import { css } from '../../styled-system/css'
 import { useDiagram, autoFg } from '../store/diagramStore'
 
+const PASTEL_NODE_COLORS = [
+  { bg: '#f4b7b2', fg: '#7b3d39' },
+  { bg: '#f8c6a8', fg: '#7d4a2f' },
+  { bg: '#f6dfa6', fg: '#71581d' },
+  { bg: '#d7ecb3', fg: '#476327' },
+  { bg: '#bde7d1', fg: '#255d49' },
+  { bg: '#b9e3ea', fg: '#255767' },
+  { bg: '#bfd4f6', fg: '#344f7c' },
+  { bg: '#d8c6f3', fg: '#5c447f' },
+  { bg: '#efc3df', fg: '#7a4262' },
+  { bg: '#e3d8cd', fg: '#625346' },
+]
+
 const panelStyle = css({
   position: 'absolute',
   top: '80px',
@@ -190,6 +203,33 @@ const fAutoStyle = css({
   },
 })
 
+const swatchGridStyle = css({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+  gap: '6px',
+  marginTop: '8px',
+})
+
+const swatchStyle = css({
+  width: '100%',
+  aspectRatio: '1 / 1',
+  borderRadius: '999px',
+  border: '1px solid rgba(0,0,0,0.1)',
+  cursor: 'pointer',
+  boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.35)',
+  transition: 'transform 0.12s, box-shadow 0.12s',
+  '&:hover': {
+    transform: 'translateY(-1px)',
+    boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.5), 0 4px 10px rgba(0,0,0,0.08)',
+  },
+  '@media (prefers-color-scheme: dark)': {
+    borderColor: 'rgba(255,255,255,0.14)',
+    '&:hover': {
+      boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.35), 0 4px 10px rgba(0,0,0,0.2)',
+    },
+  },
+})
+
 const IconConnect = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
     <circle cx="2.5" cy="6.5" r="1.5" stroke="currentColor" strokeWidth="1.1"/>
@@ -278,8 +318,23 @@ export default function PropertiesPanel() {
               <label className={labelStyle}>Background</label>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 <input type="color" value={node.bg} style={{ width: 32, height: 26, padding: 2, border: '0.5px solid rgba(0,0,0,0.15)', borderRadius: 6, background: '#f5f3ee', cursor: 'pointer', flexShrink: 0 }}
-                  onChange={e => updateNode(node.id, { bg: e.target.value })} />
+                  onChange={e => updateNode(node.id, { bg: e.target.value, fg: autoFg(e.target.value) })} />
                 <span className={colorLabelStyle}>{node.bg}</span>
+              </div>
+              <div className={swatchGridStyle}>
+                {PASTEL_NODE_COLORS.map(({ bg, fg }) => (
+                  <button
+                    key={bg}
+                    className={swatchStyle}
+                    style={{
+                      background: bg,
+                      outline: node.bg === bg ? '2px solid #6c6cff' : 'none',
+                      outlineOffset: 1,
+                    }}
+                    onClick={() => updateNode(node.id, { bg, fg })}
+                    aria-label={`Set pastel color ${bg}`}
+                  />
+                ))}
               </div>
             </div>
             <div style={{ marginBottom: 11 }}>
@@ -289,6 +344,32 @@ export default function PropertiesPanel() {
                   onChange={e => updateNode(node.id, { fg: e.target.value })} />
                 <span className={colorLabelStyle}>{node.fg}</span>
                 <button className={fAutoStyle} onClick={() => updateNode(node.id, { fg: autoFg(node.bg) })}>Auto</button>
+              </div>
+            </div>
+            <div className={sepStyle} />
+            <div style={{ marginBottom: 11 }}>
+              <label className={labelStyle}>Text</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <select className={inputStyle} style={{ flex: 1 }} value={node.family}
+                  onChange={e => updateNode(node.id, { family: e.target.value })}>
+                  <option value="inherit">Default</option>
+                  <option value="Georgia,serif">Georgia</option>
+                  <option value="'Courier New',monospace">Monospace</option>
+                  <option value="Impact,sans-serif">Impact</option>
+                </select>
+                <input type="number" className={inputStyle} value={node.size} min={8} max={96} style={{ width: 58 }}
+                  onChange={e => updateNode(node.id, { size: +e.target.value || 13 })} />
+              </div>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label className={labelStyle}>Attributes</label>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {([['bold','B','bold'],['italic','I','italic'],['underline','U','under'],['strike','S','strike']] as const).map(([prop, label, key]) => (
+                  <button key={key} className={`${fmtBtnStyle} ${node[prop] ? fmtBtnOnStyle : ''}`}
+                    onClick={() => updateNode(node.id, { [prop]: !node[prop] } as Pick<typeof node, typeof prop>)}>
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
             <div style={{ marginBottom: 11 }}>

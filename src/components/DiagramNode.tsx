@@ -235,6 +235,28 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
     </div>
   )
 
+  const textDecoration = [node.underline ? 'underline' : '', node.strike ? 'line-through' : ''].filter(Boolean).join(' ')
+  const titleTextStyle: React.CSSProperties = {
+    fontSize: node.size,
+    fontFamily: node.family,
+    fontWeight: node.bold ? '700' : '500',
+    fontStyle: node.italic ? 'italic' : 'normal',
+    textDecoration,
+    lineHeight: 1.3,
+    pointerEvents: 'none',
+  }
+  const descTextStyle: React.CSSProperties = {
+    fontSize: Math.max(node.size - 2, 10),
+    fontFamily: node.family,
+    fontWeight: node.bold ? '700' : '400',
+    fontStyle: node.italic ? 'italic' : 'normal',
+    textDecoration,
+    display: 'block',
+    marginTop: 2,
+    pointerEvents: 'none',
+    opacity: 0.75,
+  }
+
   // Child node
   if (isChild) {
     return (
@@ -265,8 +287,8 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
       >
         {selectionBadge}
         {ports}
-        <span style={{ fontSize: 12, fontWeight: 500, lineHeight: 1.3, pointerEvents: 'none' }}>{node.title}</span>
-        {node.desc && <span style={{ fontSize: 10, display: 'block', marginTop: 2, pointerEvents: 'none', opacity: 0.75 }}>{node.desc}</span>}
+        <span style={titleTextStyle}>{node.title}</span>
+        {node.desc && <span style={descTextStyle}>{node.desc}</span>}
       </div>
     )
   }
@@ -297,8 +319,8 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
         {selectionBadge}
         {ports}
         <div style={{ padding: '10px 14px 8px', cursor: 'move', textAlign: 'center' }} onMouseDown={handleMouseDown}>
-          <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, display: 'block', pointerEvents: 'none' }}>{node.title}</span>
-          {node.desc && <span style={{ fontSize: 11, display: 'block', marginTop: 2, pointerEvents: 'none', opacity: 0.75 }}>{node.desc}</span>}
+          <span style={{ ...titleTextStyle, display: 'block' }}>{node.title}</span>
+          {node.desc && <span style={descTextStyle}>{node.desc}</span>}
         </div>
         <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', gap: 8, padding: '8px 10px 10px', alignItems: 'stretch', minHeight: 30 }}>
           {node.children.map(cid => {
@@ -342,8 +364,8 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
     >
       {selectionBadge}
       {ports}
-      <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, display: 'block', pointerEvents: 'none' }}>{node.title}</span>
-      {node.desc && <span style={{ fontSize: 11, display: 'block', marginTop: 2, pointerEvents: 'none', opacity: 0.75 }}>{node.desc}</span>}
+      <span style={{ ...titleTextStyle, display: 'block' }}>{node.title}</span>
+      {node.desc && <span style={descTextStyle}>{node.desc}</span>}
     </div>
   )
 }
