@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { css } from '../../styled-system/css'
 import { useDiagram } from '../store/diagramStore'
+import { saveWorkspaceAsPng, saveWorkspaceAsSvg } from '../utils/selectionExport'
 
 // Shared SVG icons
 export const IconBox = () => (
@@ -86,6 +87,23 @@ const IconUndo = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
     <path d="M4.3 4.1H9a2.9 2.9 0 010 5.8H4.8" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
     <path d="M4.6 2.6L2.2 5l2.4 2.4" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+const IconMore = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <line x1="2.5" y1="3.5" x2="10.5" y2="3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+    <line x1="2.5" y1="6.5" x2="10.5" y2="6.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+    <line x1="2.5" y1="9.5" x2="10.5" y2="9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+  </svg>
+)
+const IconImport = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <path d="M6.5 2.2v5.4M4.4 5.6l2.1 2.1 2.1-2.1M2.4 9.7h8.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+const IconExport = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <path d="M6.5 10.8V5.4M4.4 7.4l2.1-2.1 2.1 2.1M2.4 3.3h8.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 )
 
@@ -209,12 +227,18 @@ export default function Topbar() {
   const [editOpen, setEditOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importJson, setImportJson] = useState('')
   const editRef = useRef<HTMLDivElement>(null)
   const settingsRef = useRef<HTMLDivElement>(null)
+  const moreRef = useRef<HTMLDivElement>(null)
   const {
     addBox, addText, clearAll, selectNode, selectText, startEditText,
     interactionMode, setInteractionMode, zoom, setZoom,
-    theme, setTheme, layoutMode, setLayoutMode, actionHistory, historyPast, undo,
+    theme, setTheme, layoutMode, setLayoutMode, actionHistory, historyPast, undo, exportWorkspace, importWorkspace,
+    nodes, texts, edges, selNode, selText, selEdge, multiSel,
+    pushToast,
   } = useDiagram()
 
   useEffect(() => {
@@ -224,6 +248,7 @@ export default function Topbar() {
         setSettingsOpen(false)
         setHistoryOpen(false)
       }
+      if (!moreRef.current?.contains(e.target as Node)) setMoreOpen(false)
     }
     document.addEventListener('click', onClick)
     return () => document.removeEventListener('click', onClick)
@@ -251,7 +276,62 @@ export default function Topbar() {
     setZoom(Math.max(0.4, Math.min(2.5, Number((zoom + delta).toFixed(2)))))
   }
 
+  const doExportJson = () => {
+    const blob = new Blob([JSON.stringify(exportWorkspace(), null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'thot-workspace.json'
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    setMoreOpen(false)
+    pushToast('success', 'Workspace exported to JSON')
+  }
+
+  const getSnapshot = () => ({ nodes, texts, edges, selNode, selText, selEdge, multiSel })
+
+  const doSavePng = async () => {
+    try {
+      await saveWorkspaceAsPng(getSnapshot())
+      setMoreOpen(false)
+      pushToast('success', 'Workspace saved as PNG')
+    } catch {
+      pushToast('error', 'Unable to save PNG')
+    }
+  }
+
+  const doSaveSvg = async () => {
+    try {
+      await saveWorkspaceAsSvg(getSnapshot())
+      setMoreOpen(false)
+      pushToast('success', 'Workspace saved as SVG')
+    } catch {
+      pushToast('error', 'Unable to save SVG')
+    }
+  }
+
+  const doImportClick = () => {
+    setMoreOpen(false)
+    setImportOpen(true)
+  }
+
+  const doImportJson = () => {
+    try {
+      const parsed = JSON.parse(importJson)
+      if (!importWorkspace(parsed)) {
+        pushToast('error', 'Invalid Thot JSON payload')
+        return
+      }
+      setImportOpen(false)
+      setImportJson('')
+      pushToast('success', 'Workspace imported from JSON')
+    } catch {
+      pushToast('error', 'Unable to import this JSON payload')
+    }
+  }
+
   return (
+    <>
     <div className={topbarStyle}>
       <div className={brandStyle} aria-label="Thot Editor">
         <img src="/thot_dark_icon_transparency.svg" alt="Thot Editor" />
@@ -336,6 +416,110 @@ export default function Topbar() {
       <button className={btnStyle} onClick={() => updateZoom(-0.1)}><IconMinus /></button>
       <button className={btnStyle} onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
       <button className={btnStyle} onClick={() => updateZoom(0.1)}><IconPlus /></button>
+      <div className={sepStyle} />
+      <div style={{ position: 'relative' }} ref={moreRef}>
+        <button className={btnStyle} onClick={() => { setMoreOpen(o => !o); setEditOpen(false); setSettingsOpen(false); setHistoryOpen(false) }}>
+          <IconMore />
+        </button>
+        {moreOpen && (
+          <div className={menuStyle + ' ' + css({ right: 0, left: 'auto', minWidth: '210px' })}>
+            <div className={menuItemStyle} onClick={doImportClick}>
+              <IconImport /> Import from JSON
+            </div>
+            <div className={menuItemStyle} onClick={() => { void doSavePng() }}>
+              <IconExport /> Save as PNG
+            </div>
+            <div className={menuItemStyle} onClick={() => { void doSaveSvg() }}>
+              <IconExport /> Save as SVG
+            </div>
+            <div className={menuItemStyle} onClick={doExportJson}>
+              <IconExport /> Export to JSON
+            </div>
+          </div>
+        )}
+      </div>
     </div>
+    {importOpen && (
+      <div
+        className={css({
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(18,18,16,0.36)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 900,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+        })}
+        onClick={() => setImportOpen(false)}
+      >
+        <div
+          className={css({
+            width: 'min(720px, 100%)',
+            borderRadius: '22px',
+            background: '#fff',
+            border: '0.5px solid rgba(0,0,0,0.1)',
+            boxShadow: '0 28px 80px rgba(0,0,0,0.18)',
+            padding: '18px',
+            '[data-theme=dark] &': {
+              background: '#2c2c2a',
+              borderColor: 'rgba(255,255,255,0.08)',
+            },
+          })}
+          onClick={e => e.stopPropagation()}
+        >
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--modal-title, #1a1a18)', marginBottom: 6 }}>
+            Import from JSON
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.6, color: '#888780', marginBottom: 14 }}>
+            Paste a Thot workspace JSON payload to replace the current graph.
+          </div>
+          <textarea
+            value={importJson}
+            onChange={e => setImportJson(e.target.value)}
+            placeholder='{\n  "nodes": {},\n  "texts": {},\n  "edges": []\n}'
+            className={css({
+              width: '100%',
+              minHeight: '320px',
+              resize: 'vertical',
+              borderRadius: '16px',
+              border: '0.5px solid rgba(0,0,0,0.12)',
+              background: '#f8f6f2',
+              color: '#1a1a18',
+              padding: '14px 16px',
+              fontSize: '13px',
+              lineHeight: '1.6',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+              outline: 'none',
+              '[data-theme=dark] &': {
+                background: '#1f1f1d',
+                color: '#f5f3ee',
+                borderColor: 'rgba(255,255,255,0.08)',
+              },
+            })}
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
+            <button
+              className={btnStyle}
+              onClick={() => setImportOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className={btnStyle + ' ' + css({
+                background: '#1a1a18 !important',
+                color: '#f5f3ee !important',
+                '[data-theme=dark] &': { background: '#f5f3ee !important', color: '#1a1a18 !important' },
+              })}
+              onClick={doImportJson}
+            >
+              Import JSON
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }

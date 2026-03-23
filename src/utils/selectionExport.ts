@@ -11,6 +11,8 @@ type DiagramStateSnapshot = {
   multiSel: Set<string>
 }
 
+type ExportScope = 'selection' | 'workspace'
+
 type SelectionContent = {
   nodeIds: string[]
   textIds: string[]
@@ -29,6 +31,15 @@ const EXPORT_SCALE = Math.max(4, Math.ceil((window.devicePixelRatio || 1) * 2))
 
 function getCanvasRoot() {
   return document.querySelector('[data-canvas-root="true"]') as HTMLDivElement | null
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 function getSelectedContent(state: DiagramStateSnapshot): SelectionContent {
@@ -89,8 +100,24 @@ function getSelectionElements(state: DiagramStateSnapshot) {
   return contentEls
 }
 
-function getSelectionBounds(state: DiagramStateSnapshot, canvas: HTMLElement): SelectionBounds {
-  const elements = getSelectionElements(state)
+function getWorkspaceElements(state: DiagramStateSnapshot) {
+  const nodeEls = Object.keys(state.nodes)
+    .filter(id => !state.nodes[id].parent)
+    .map(id => document.getElementById(`nd-${id}`))
+    .filter((el): el is HTMLElement => el instanceof HTMLElement)
+  const textEls = Object.keys(state.texts)
+    .map(id => document.getElementById(`tn-${id}`))
+    .filter((el): el is HTMLElement => el instanceof HTMLElement)
+  const edgeEls = state.edges
+    .map((_, index) => document.querySelector(`[data-edge-index="${index}"]`))
+    .filter((el): el is SVGGElement => el instanceof SVGGElement)
+  const contentEls: Element[] = [...nodeEls, ...textEls, ...edgeEls]
+  if (contentEls.length === 0) throw new Error('Nothing to export')
+  return contentEls
+}
+
+function getBounds(state: DiagramStateSnapshot, canvas: HTMLElement, scope: ExportScope): SelectionBounds {
+  const elements = scope === 'workspace' ? getWorkspaceElements(state) : getSelectionElements(state)
   const canvasRect = canvas.getBoundingClientRect()
 
   let minLeft = Number.POSITIVE_INFINITY
@@ -108,7 +135,7 @@ function getSelectionBounds(state: DiagramStateSnapshot, canvas: HTMLElement): S
   })
 
   if (!Number.isFinite(minLeft) || !Number.isFinite(minTop) || !Number.isFinite(maxRight) || !Number.isFinite(maxBottom)) {
-    throw new Error('Unable to export selection')
+    throw new Error('Unable to export content')
   }
 
   return {
@@ -193,7 +220,7 @@ async function waitForPaint() {
   await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
 }
 
-async function renderSelection(state: DiagramStateSnapshot) {
+async function renderArea(state: DiagramStateSnapshot, scope: ExportScope) {
   const canvas = getCanvasRoot()
   if (!canvas) throw new Error('Canvas not found')
 
@@ -201,7 +228,7 @@ async function renderSelection(state: DiagramStateSnapshot) {
 
   try {
     await waitForPaint()
-    const bounds = getSelectionBounds(state, canvas)
+    const bounds = getBounds(state, canvas, scope)
     const scale = EXPORT_SCALE
     const fullCanvas = await toCanvas(canvas, {
       cacheBust: true,
@@ -259,7 +286,7 @@ function escapeXml(value: string) {
 }
 
 export async function copySelectionAsSvg(state: DiagramStateSnapshot) {
-  const { dataUrl, width, height } = await renderSelection(state)
+  const { dataUrl, width, height } = await renderArea(state, 'selection')
   const svgText = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <image href="${escapeXml(dataUrl)}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet" />
@@ -269,9 +296,26 @@ export async function copySelectionAsSvg(state: DiagramStateSnapshot) {
 }
 
 export async function copySelectionAsPng(state: DiagramStateSnapshot) {
-  const { canvas } = await renderSelection(state)
+  const { canvas } = await renderArea(state, 'selection')
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(nextBlob => (nextBlob ? resolve(nextBlob) : reject(new Error('Unable to encode PNG'))), 'image/png')
   })
   await copyBlobToClipboard(blob, 'image/png')
+}
+
+export async function saveWorkspaceAsSvg(state: DiagramStateSnapshot) {
+  const { dataUrl, width, height } = await renderArea(state, 'workspace')
+  const svgText = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <image href="${escapeXml(dataUrl)}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet" />
+</svg>`
+  downloadBlob(new Blob([svgText], { type: 'image/svg+xml' }), 'thot-workspace.svg')
+}
+
+export async function saveWorkspaceAsPng(state: DiagramStateSnapshot) {
+  const { canvas } = await renderArea(state, 'workspace')
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(nextBlob => (nextBlob ? resolve(nextBlob) : reject(new Error('Unable to encode PNG'))), 'image/png')
+  })
+  downloadBlob(blob, 'thot-workspace.png')
 }

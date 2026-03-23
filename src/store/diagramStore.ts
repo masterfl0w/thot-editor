@@ -10,6 +10,12 @@ type WorkspaceSnapshot = {
   zoom: number
 }
 
+export type Toast = {
+  id: string
+  kind: 'success' | 'error'
+  message: string
+}
+
 function lum(h: string) {
   const r = parseInt(h.slice(1, 3), 16) / 255
   const g = parseInt(h.slice(3, 5), 16) / 255
@@ -66,6 +72,7 @@ interface DiagramState {
   tc: number
   ctxTarget: ContextMenuTarget
   modeText: string
+  toasts: Toast[]
 
   // actions
   addBox: (opts?: Partial<DiagramNode> & { parent?: string }) => string
@@ -110,6 +117,19 @@ interface DiagramState {
   setTextPosition: (id: string, x: number, y: number) => void
   moveNode: (id: string, x: number, y: number) => void
   moveText: (id: string, x: number, y: number) => void
+  exportWorkspace: () => {
+    version: string
+    theme: 'light' | 'dark'
+    layoutMode: 'free' | 'static'
+    viewport: { x: number; y: number }
+    zoom: number
+    nodes: Record<string, DiagramNode>
+    texts: Record<string, TextNode>
+    edges: Edge[]
+  }
+  importWorkspace: (data: unknown) => boolean
+  pushToast: (kind: 'success' | 'error', message: string) => void
+  removeToast: (id: string) => void
 }
 
 const DEFAULT_MODE = 'Select mode: drag to multi-select · Shift-click to add to selection · Right-click to add'
@@ -145,6 +165,66 @@ function getWorkspaceSnapshot(state: Pick<DiagramState, 'nodes' | 'texts' | 'edg
 
 function sameWorkspace(a: WorkspaceSnapshot, b: WorkspaceSnapshot) {
   return JSON.stringify(a) === JSON.stringify(b)
+}
+
+function isPortSide(value: unknown): value is PortSide {
+  return value === 'pt' || value === 'pb' || value === 'pl' || value === 'pr'
+}
+
+function isDiagramNode(value: unknown): value is DiagramNode {
+  if (!value || typeof value !== 'object') return false
+  const node = value as DiagramNode
+  return typeof node.id === 'string'
+    && typeof node.title === 'string'
+    && typeof node.desc === 'string'
+    && typeof node.bg === 'string'
+    && typeof node.fg === 'string'
+    && typeof node.shape === 'string'
+    && typeof node.family === 'string'
+    && typeof node.size === 'number'
+    && typeof node.bold === 'boolean'
+    && typeof node.italic === 'boolean'
+    && typeof node.underline === 'boolean'
+    && typeof node.strike === 'boolean'
+    && typeof node.radius === 'number'
+    && typeof node.x === 'number'
+    && typeof node.y === 'number'
+    && (typeof node.parent === 'string' || node.parent === null)
+    && Array.isArray(node.children)
+}
+
+function isTextNode(value: unknown): value is TextNode {
+  if (!value || typeof value !== 'object') return false
+  const text = value as TextNode
+  return typeof text.id === 'string'
+    && typeof text.content === 'string'
+    && typeof text.x === 'number'
+    && typeof text.y === 'number'
+    && typeof text.size === 'number'
+    && typeof text.color === 'string'
+    && typeof text.family === 'string'
+    && typeof text.bold === 'boolean'
+    && typeof text.italic === 'boolean'
+    && typeof text.underline === 'boolean'
+    && typeof text.strike === 'boolean'
+    && (text.align === 'left' || text.align === 'center' || text.align === 'right')
+    && typeof text.opacity === 'number'
+}
+
+function isEdge(value: unknown): value is Edge {
+  if (!value || typeof value !== 'object') return false
+  const edge = value as Edge
+  return typeof edge.from === 'string'
+    && typeof edge.to === 'string'
+    && isPortSide(edge.fromSide)
+    && isPortSide(edge.toSide)
+    && typeof edge.label === 'string'
+    && typeof edge.desc === 'string'
+    && typeof edge.color === 'string'
+    && (edge.style === 'solid' || edge.style === 'dashed' || edge.style === 'dotted')
+    && (edge.arrow === 'end' || edge.arrow === 'both' || edge.arrow === 'none')
+    && (edge.route === 'straight' || edge.route === 'curve' || edge.route === 'angle')
+    && typeof edge.bend === 'number'
 }
 
 export const useDiagram = create<DiagramState>()(persist((set, get) => ({
@@ -190,6 +270,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   tc: 0,
   ctxTarget: null,
   modeText: DEFAULT_MODE,
+  toasts: [],
 
   addBox: (opts = {}) => {
     const { nodes, nc, layoutMode } = get()
@@ -700,6 +781,117 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
       },
     })
   },
+
+  exportWorkspace: () => {
+    const state = get()
+    return {
+      version: '0.2.2',
+      theme: state.theme,
+      layoutMode: state.layoutMode,
+      viewport: { ...state.viewport },
+      zoom: state.zoom,
+      nodes: Object.fromEntries(
+        Object.entries(state.nodes).map(([id, node]) => [id, { ...node, children: [...node.children] }]),
+      ),
+      texts: Object.fromEntries(
+        Object.entries(state.texts).map(([id, text]) => [id, { ...text }]),
+      ),
+      edges: state.edges.map(edge => ({ ...edge })),
+    }
+  },
+
+  importWorkspace: (data) => {
+    if (!data || typeof data !== 'object') return false
+    const incoming = data as {
+      theme?: unknown
+      layoutMode?: unknown
+      viewport?: unknown
+      zoom?: unknown
+      nodes?: unknown
+      texts?: unknown
+      edges?: unknown
+    }
+
+    if (incoming.theme !== 'light' && incoming.theme !== 'dark') return false
+    if (incoming.layoutMode !== 'free' && incoming.layoutMode !== 'static') return false
+    if (!incoming.viewport || typeof incoming.viewport !== 'object') return false
+    const viewport = incoming.viewport as { x?: unknown; y?: unknown }
+    if (typeof viewport.x !== 'number' || typeof viewport.y !== 'number') return false
+    if (typeof incoming.zoom !== 'number') return false
+    if (!incoming.nodes || typeof incoming.nodes !== 'object') return false
+    if (!incoming.texts || typeof incoming.texts !== 'object') return false
+    if (!Array.isArray(incoming.edges)) return false
+
+    const nodeEntries = Object.entries(incoming.nodes as Record<string, unknown>)
+    const textEntries = Object.entries(incoming.texts as Record<string, unknown>)
+    if (!nodeEntries.every(([, value]) => isDiagramNode(value))) return false
+    if (!textEntries.every(([, value]) => isTextNode(value))) return false
+    if (!incoming.edges.every(isEdge)) return false
+
+    const nodes = Object.fromEntries(
+      nodeEntries.map(([id, value]) => [id, { ...(value as DiagramNode), children: [...(value as DiagramNode).children] }]),
+    )
+    const texts = Object.fromEntries(
+      textEntries.map(([id, value]) => [id, { ...(value as TextNode) }]),
+    )
+    const edges = incoming.edges.map(edge => ({ ...edge }))
+    const nodeIds = new Set(Object.keys(nodes))
+
+    if (!Object.values(nodes).every(node =>
+      (node.parent === null || nodeIds.has(node.parent))
+      && node.children.every(childId => nodeIds.has(childId)),
+    )) return false
+    if (!edges.every(edge => nodeIds.has(edge.from) && nodeIds.has(edge.to))) return false
+
+    const nextNc = Math.max(0, ...Object.keys(nodes).map(id => Number(id.replace(/^\D+/, '')) || 0))
+    const nextTc = Math.max(0, ...Object.keys(texts).map(id => Number(id.replace(/^\D+/, '')) || 0))
+
+    set({
+      nodes,
+      texts,
+      edges,
+      theme: incoming.theme,
+      layoutMode: incoming.layoutMode,
+      viewport: { x: viewport.x, y: viewport.y },
+      zoom: incoming.zoom,
+      nc: nextNc,
+      tc: nextTc,
+      selNode: null,
+      selText: null,
+      selEdge: null,
+      multiSel: new Set(),
+      cmode: false,
+      csrc: null,
+      csrcSide: null,
+      editingTextId: null,
+      ctxTarget: null,
+      pointer: null,
+      historyPast: [],
+      historyFuture: [],
+      actionHistory: ['Import JSON'],
+      sceneClipboard: null,
+      toasts: [],
+      modeText: 'Imported workspace from JSON',
+    })
+    return true
+  },
+
+  pushToast: (kind, message) => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    set(state => ({
+      toasts: [...state.toasts, { id, kind, message }],
+    }))
+    window.setTimeout(() => {
+      const current = get().toasts
+      if (current.some(toast => toast.id === id)) {
+        set({ toasts: current.filter(toast => toast.id !== id) })
+      }
+    }, 2800)
+  },
+
+  removeToast: (id) => set(state => ({
+    toasts: state.toasts.filter(toast => toast.id !== id),
+  })),
 }
   })(),
 }), {

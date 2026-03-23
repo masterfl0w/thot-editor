@@ -236,7 +236,7 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
                 margin: '0 0 28px',
               })}
             >
-              Thot Editor is a visual workspace for architecture maps, product thinking, system sketches and structured notes. Build connected diagrams, nest concepts, export clean assets, and keep everything editable on an infinite canvas.
+              Thot Editor is a visual workspace for architecture maps, product thinking, system sketches and structured notes. Build connected diagrams, format math equations, import or export graph data as JSON, and keep everything editable on an infinite canvas with a simple UI.
             </p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 34 }}>
               <button
@@ -282,9 +282,9 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
               })}
             >
               {[
-                ['Port-to-port links', 'Precise edge anchors, curves and labels'],
-                ['PNG / SVG export', 'Transparent exports ready for docs and slides'],
-                ['Math + notes', 'Write text, formulas and structured diagrams together'],
+                ['Simple UX/UI', 'A focused interface built for thinking, not tool-hunting'],
+                ['Math formatting', 'Write equations and notes together directly on the canvas'],
+                ['JSON friendly', 'Import and export graphs as JSON without friction'],
               ].map(([title, body]) => (
                 <div
                   key={title}
@@ -333,18 +333,18 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
           >
             <ExampleCard
               title="Architecture maps"
-              desc="Explain frontend, backend, model routing and local tooling in a single diagram with nested nodes and labeled links."
+              desc="Explain frontend, backend, model routing and local tooling in a single diagram with nested nodes, links and clean structure."
               tags={['System design', 'Nested boxes', 'Links']}
             />
             <ExampleCard
-              title="Product thinking"
-              desc="Capture user flows, feature ideas and implementation notes without switching between a note app and a diagram tool."
-              tags={['UX mapping', 'Text + boxes', 'Infinite canvas']}
+              title="JSON to graph"
+              desc="Paste a JSON payload and turn it into a structured Thot workspace, then export the graph back to JSON after edits."
+              tags={['Import JSON', 'Export JSON', 'Graph config']}
             />
             <ExampleCard
-              title="Share-ready visuals"
-              desc="Export selected parts as transparent PNG or SVG-backed assets for documentation, slides and handoff."
-              tags={['Transparent export', 'Slides', 'Docs']}
+              title="Math and notes"
+              desc="Mix free text, equations and visual structure in one place for technical notes, specs and architecture reviews."
+              tags={['Equations', 'Notes', 'Technical docs']}
             />
           </div>
         </section>
@@ -372,7 +372,7 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
               Built for thinking visually, not fighting UI.
             </div>
             <div style={{ fontSize: 16, lineHeight: 1.72, color: 'rgba(245,243,238,0.72)', maxWidth: 560 }}>
-              Thot Editor combines diagramming, note-taking, math notation, export workflows and persistent local sessions in one surface. It stays lightweight, but it covers the actual flow of thinking through a system.
+              Thot Editor combines diagramming, note-taking, math notation, JSON-friendly workflows and persistent local sessions in one surface. It stays lightweight, open source and practical for real technical work.
             </div>
           </div>
 
@@ -387,11 +387,11 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
             <div style={{ fontSize: 13, fontWeight: 700, color: '#7c5e47', marginBottom: 10 }}>Core features</div>
             <div style={{ display: 'grid', gap: 12 }}>
               {[
+                'Simple UX/UI with a focused canvas and fast editing flow',
+                'Math notation inside text nodes and box content for equations',
+                'JSON-friendly import/export for graph configuration and automation',
                 'Infinite workspace with pan, zoom and free/static positioning',
-                'Selection, multi-selection, copy/paste and precise undo history',
-                'Port-based links with labels, curves and angle routing',
-                'Theme support, adaptive styling and persisted local workspace',
-                'Math notation inside text nodes and box content',
+                'Free and open source, with local-first persistence and exports',
               ].map(item => (
                 <div
                   key={item}
@@ -436,7 +436,7 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
                 Open Thot Editor and start mapping.
               </div>
               <div style={{ fontSize: 16, lineHeight: 1.65, color: 'rgba(245,243,238,0.72)', maxWidth: 640 }}>
-                Create boxes, connect ideas, add math, export clean visuals and come back later with the same workspace still there.
+                Create boxes, connect ideas, format equations, move between JSON and graph views, export clean visuals, and come back later with the same workspace still there.
               </div>
             </div>
             <button

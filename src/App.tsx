@@ -7,6 +7,49 @@ import ContextMenu from './components/ContextMenu'
 import LandingPage from './components/LandingPage'
 import { useDiagram } from './store/diagramStore'
 
+function ToastViewport() {
+  const { toasts, removeToast } = useDiagram()
+  if (toasts.length === 0) return null
+
+  return (
+    <div
+      className={css({
+        position: 'fixed',
+        right: '18px',
+        bottom: '18px',
+        zIndex: 1200,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        maxWidth: '360px',
+      })}
+    >
+      {toasts.map(toast => (
+        <button
+          key={toast.id}
+          onClick={() => removeToast(toast.id)}
+          className={css({
+            border: 'none',
+            cursor: 'pointer',
+            textAlign: 'left',
+            borderRadius: '16px',
+            padding: '12px 14px',
+            boxShadow: '0 18px 44px rgba(0,0,0,0.18)',
+            backdropFilter: 'blur(16px)',
+            background: toast.kind === 'success' ? 'rgba(25,107,68,0.92)' : 'rgba(158,49,49,0.94)',
+            color: '#f5f3ee',
+            fontSize: '13px',
+            lineHeight: '1.45',
+            fontWeight: '600',
+          })}
+        >
+          {toast.message}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function DemoTopbar() {
   return (
     <div
@@ -134,7 +177,7 @@ function EditorWorkspace({ miniDemo = false }: { miniDemo?: boolean }) {
         bend: 24,
       }],
       theme: 'dark',
-      layoutMode: 'free',
+      layoutMode: 'static',
       viewport: { x: 0, y: 0 },
       zoom: 1,
       interactionMode: 'select',
@@ -302,6 +345,7 @@ function EditorWorkspace({ miniDemo = false }: { miniDemo?: boolean }) {
       </div>
       {!miniDemo && <PropertiesPanel />}
       <ContextMenu />
+      <ToastViewport />
     </div>
   )
 }
