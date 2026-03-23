@@ -16,6 +16,13 @@ export type Toast = {
   message: string
 }
 
+export type ActionHistoryEntry = {
+  id: string
+  label: string
+  actor: string
+  createdAt: string
+}
+
 export type CollaboratorPresence = {
   id: string
   name: string
@@ -25,14 +32,23 @@ export type CollaboratorPresence = {
   self: boolean
 }
 
+export type CollaborationRequest = {
+  id: string
+  name: string
+  color: string
+}
+
 export type CollaborationState = {
   active: boolean
   roomId: string | null
   isHost: boolean
+  awaitingApproval: boolean
+  serverUrl: string | null
   selfId: string | null
   selfName: string | null
   selfColor: string | null
   participants: CollaboratorPresence[]
+  pendingRequests: CollaborationRequest[]
 }
 
 function lum(h: string) {
@@ -72,7 +88,7 @@ interface DiagramState {
   sceneClipboard: { nodes: DiagramNode[]; texts: TextNode[]; edges: Edge[] } | null
   historyPast: WorkspaceSnapshot[]
   historyFuture: WorkspaceSnapshot[]
-  actionHistory: string[]
+  actionHistory: ActionHistoryEntry[]
   theme: 'light' | 'dark'
   layoutMode: 'free' | 'static'
   viewport: { x: number; y: number }
@@ -168,13 +184,25 @@ const EMPTY_COLLABORATION: CollaborationState = {
   active: false,
   roomId: null,
   isHost: false,
+  awaitingApproval: false,
+  serverUrl: null,
   selfId: null,
   selfName: null,
   selfColor: null,
   participants: [],
+  pendingRequests: [],
 }
 const DEFAULT_THEME: 'light' | 'dark' =
   typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+
+function makeHistoryEntry(label: string, collaboration: CollaborationState): ActionHistoryEntry {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    label,
+    actor: collaboration.active ? (collaboration.selfName ?? 'Collaborator') : 'You',
+    createdAt: new Date().toISOString(),
+  }
+}
 
 function cloneWorkspaceSnapshot(snapshot: WorkspaceSnapshot): WorkspaceSnapshot {
   return {
@@ -328,13 +356,13 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
       const before = getWorkspaceSnapshot(get())
       set(updater as never)
       const after = getWorkspaceSnapshot(get())
-      if (sameWorkspace(before, after)) return
-      set(state => ({
-        historyPast: [...state.historyPast.slice(-(MAX_UNDO - 1)), before],
-        historyFuture: [],
-        actionHistory: [...state.actionHistory.slice(-(MAX_ACTION_HISTORY - 1)), action],
-      }))
-    }
+        if (sameWorkspace(before, after)) return
+        set(state => ({
+          historyPast: [...state.historyPast.slice(-(MAX_UNDO - 1)), before],
+          historyFuture: [],
+          actionHistory: [...state.actionHistory.slice(-(MAX_ACTION_HISTORY - 1)), makeHistoryEntry(action, state.collaboration)],
+        }))
+      }
 
     return {
   nodes: {},
@@ -811,7 +839,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
     set(state => ({
       historyPast: [...state.historyPast.slice(-(MAX_UNDO - 1)), cloneWorkspaceSnapshot(before)],
       historyFuture: [],
-      actionHistory: [...state.actionHistory.slice(-(MAX_ACTION_HISTORY - 1)), action],
+      actionHistory: [...state.actionHistory.slice(-(MAX_ACTION_HISTORY - 1)), makeHistoryEntry(action, state.collaboration)],
     }))
   },
 
@@ -911,7 +939,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
       pointer: null,
       historyPast: [],
       historyFuture: [],
-      actionHistory: ['Import JSON'],
+      actionHistory: [makeHistoryEntry('Import JSON', get().collaboration)],
       sceneClipboard: null,
       toasts: [],
       modeText: 'Imported workspace from JSON',

@@ -86,6 +86,57 @@ function DemoTopbar() {
   )
 }
 
+function CollaborationPill() {
+  const { collaboration, theme } = useDiagram()
+  if (!collaboration.active) return null
+
+  const label = collaboration.awaitingApproval
+    ? 'Collaboration · waiting approval'
+    : collaboration.isHost
+      ? 'Live collaboration'
+      : 'Collaboration joined'
+
+  return (
+    <div
+      className={css({
+        position: 'absolute',
+        top: '18px',
+        right: '18px',
+        zIndex: 320,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '8px',
+        height: '38px',
+        padding: '0 14px',
+        borderRadius: '999px',
+        background: 'rgba(255,255,255,0.9)',
+        border: '0.5px solid rgba(0,0,0,0.08)',
+        boxShadow: '0 18px 40px rgba(25,25,20,0.12)',
+        backdropFilter: 'blur(18px)',
+        color: '#1a1a18',
+        '[data-theme=dark] &': {
+          background: 'rgba(44,44,42,0.88)',
+          borderColor: 'rgba(255,255,255,0.08)',
+          boxShadow: '0 20px 44px rgba(0,0,0,0.28)',
+          color: '#f5f3ee',
+        },
+      })}
+    >
+      <span
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          background: collaboration.awaitingApproval ? '#f2df8f' : (collaboration.selfColor ?? '#98dbc6'),
+          boxShadow: theme === 'dark' ? '0 0 0 4px rgba(255,255,255,0.06)' : '0 0 0 4px rgba(0,0,0,0.05)',
+          flexShrink: 0,
+        }}
+      />
+      <span style={{ fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</span>
+    </div>
+  )
+}
+
 function EditorWorkspace({ miniDemo = false }: { miniDemo?: boolean }) {
   const {
     deselectAll,
@@ -341,6 +392,7 @@ function EditorWorkspace({ miniDemo = false }: { miniDemo?: boolean }) {
       },
     })}>
       {miniDemo ? <DemoTopbar /> : <Topbar />}
+      {!miniDemo && <CollaborationPill />}
       <div className={css({ position: 'absolute', inset: 0 })}>
         <Canvas />
       </div>

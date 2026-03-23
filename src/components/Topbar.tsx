@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { css } from '../../styled-system/css'
 import { useDiagram } from '../store/diagramStore'
 import { saveWorkspaceAsPng, saveWorkspaceAsSvg } from '../utils/selectionExport'
-import { copyInviteLink, kickCollaborator, startHostedCollaboration, stopCollaboration } from '../utils/collaboration'
+import { approveCollaborator, copyInviteLink, kickCollaborator, rejectCollaborator, startHostedCollaboration, stopCollaboration } from '../utils/collaboration'
 
 // Shared SVG icons
 export const IconBox = () => (
@@ -25,11 +25,6 @@ const IconEdit = () => (
 const IconTrash = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
     <path d="M2 3.5h9M4.5 3.5V3h4v.5M5.5 6v3.5M7.5 6v3.5M2.5 3.5l.75 6.5a.9.9 0 00.9.75h4.7a.9.9 0 00.9-.75l.75-6.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
-  </svg>
-)
-const IconChevron = () => (
-  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-    <path d="M2.5 4l2.5 2.5L7.5 4" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
   </svg>
 )
 const IconCursor = () => (
@@ -62,12 +57,6 @@ const IconSun = () => (
 const IconMoon = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
     <path d="M8.9 2.1a4.5 4.5 0 104 6.1A4.9 4.9 0 018.9 2.1z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-)
-const IconSettings = () => (
-  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-    <path d="M6.5 4.6a1.9 1.9 0 100 3.8 1.9 1.9 0 000-3.8z" stroke="currentColor" strokeWidth="1.1"/>
-    <path d="M10.4 7.1v-1.2l-1-.3a3.3 3.3 0 00-.3-.7l.5-.9-.8-.8-.9.5a3.3 3.3 0 00-.7-.3l-.3-1H5.7l-.3 1a3.3 3.3 0 00-.7.3l-.9-.5-.8.8.5.9a3.3 3.3 0 00-.3.7l-1 .3v1.2l1 .3c.1.2.2.5.3.7l-.5.9.8.8.9-.5c.2.1.5.2.7.3l.3 1h1.2l.3-1c.2-.1.5-.2.7-.3l.9.5.8-.8-.5-.9c.1-.2.2-.5.3-.7l1-.3z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 )
 const IconGrid = () => (
@@ -120,6 +109,16 @@ const IconLink = () => (
 const IconUserMinus = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
     <path d="M4.8 6a1.8 1.8 0 100-3.6A1.8 1.8 0 004.8 6zm-2.2 4.4c.3-1.4 1.5-2.3 3-2.3s2.7.9 3 2.3M8.8 4.6h3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+const IconCheck = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <path d="M2.7 6.8l2.1 2.1 5.5-5.2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+const IconChevron = () => (
+  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+    <path d="M2.5 4l2.5 2.5L7.5 4" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
   </svg>
 )
 
@@ -239,16 +238,27 @@ const menuSepStyle = css({
   '[data-theme=dark] &': { background: 'rgba(255,255,255,0.08)' },
 })
 
+const sectionTitleStyle = css({
+  padding: '7px 10px 4px',
+  fontSize: '11px',
+  color: '#888780',
+  fontWeight: '700',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  '[data-theme=dark] &': { color: '#9c9a92' },
+})
+
 export default function Topbar() {
   const [editOpen, setEditOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [historyOpen, setHistoryOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [collabOpen, setCollabOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [importJson, setImportJson] = useState('')
+  const [collabServerUrl, setCollabServerUrl] = useState(() =>
+    localStorage.getItem('thot-collab-server-url') ?? '',
+  )
   const editRef = useRef<HTMLDivElement>(null)
-  const settingsRef = useRef<HTMLDivElement>(null)
   const moreRef = useRef<HTMLDivElement>(null)
   const {
     addBox, addText, clearAll, selectNode, selectText, startEditText,
@@ -262,10 +272,6 @@ export default function Topbar() {
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (!editRef.current?.contains(e.target as Node)) setEditOpen(false)
-      if (!settingsRef.current?.contains(e.target as Node)) {
-        setSettingsOpen(false)
-        setHistoryOpen(false)
-      }
       if (!moreRef.current?.contains(e.target as Node)) setMoreOpen(false)
     }
     document.addEventListener('click', onClick)
@@ -275,19 +281,19 @@ export default function Topbar() {
   const doAddBox = () => {
     const id = addBox({ x: 80 + Math.random() * 300, y: 60 + Math.random() * 200 })
     selectNode(id)
-    setEditOpen(false)
+    setMoreOpen(false)
   }
 
   const doAddText = () => {
     const id = addText({ x: 80 + Math.random() * 300, y: 60 + Math.random() * 200 })
     selectText(id)
     setTimeout(() => startEditText(id), 50)
-    setEditOpen(false)
+    setMoreOpen(false)
   }
 
   const doClearAll = () => {
     clearAll()
-    setEditOpen(false)
+    setMoreOpen(false)
   }
 
   const updateZoom = (delta: number) => {
@@ -355,7 +361,8 @@ export default function Topbar() {
 
   const doStartCollaboration = async () => {
     try {
-      const link = startHostedCollaboration()
+      localStorage.setItem('thot-collab-server-url', collabServerUrl.trim())
+      const link = startHostedCollaboration(collabServerUrl)
       await navigator.clipboard.writeText(link ?? '')
       pushToast('success', 'Collaboration opened. Invite link copied.')
       setCollabOpen(true)
@@ -395,8 +402,29 @@ export default function Topbar() {
     }
   }
 
+  const doApproveRequest = (id: string, name: string) => {
+    if (!approveCollaborator(id)) {
+      pushToast('error', 'Unable to approve this join request')
+      return
+    }
+    pushToast('success', `${name} can now edit the workspace`)
+  }
+
+  const doRejectRequest = (id: string, name: string) => {
+    if (!rejectCollaborator(id)) {
+      pushToast('error', 'Unable to reject this join request')
+      return
+    }
+    pushToast('success', `${name} was denied access`)
+  }
+
   const modalTextColor = theme === 'dark' ? '#f5f3ee' : '#1a1a18'
   const modalSubtleColor = theme === 'dark' ? '#b8b3aa' : '#888780'
+  const formatHistoryTime = (value: string) => {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return value
+    return date.toLocaleString()
+  }
 
   return (
     <>
@@ -406,13 +434,24 @@ export default function Topbar() {
       </div>
       <div className={sepStyle} />
       <div style={{ position: 'relative' }} ref={editRef}>
-        <button className={btnStyle} onClick={() => { setEditOpen(o => !o); setSettingsOpen(false) }}>
+        <button className={btnStyle} onClick={() => { setEditOpen(o => !o); setMoreOpen(false) }}>
           <IconEdit /> Edit <IconChevron />
         </button>
         {editOpen && (
           <div className={menuStyle}>
-            <div className={menuItemStyle} onClick={doAddBox}><IconBox /> Add box</div>
-            <div className={menuItemStyle} onClick={doAddText}><IconText /> Add text</div>
+            <div className={menuItemStyle} onClick={doAddBox}>
+              <IconBox /> Add box
+            </div>
+            <div className={menuItemStyle} onClick={doAddText}>
+              <IconText /> Add text
+            </div>
+            <div className={menuSepStyle} />
+            <div className={menuItemStyle + ' ' + (interactionMode === 'select' ? css({ background: '#f5f3ee', '[data-theme=dark] &': { background: '#3d3d3a' } }) : '')} onClick={() => { setInteractionMode('select'); setEditOpen(false) }}>
+              <IconCursor /> Select mode {interactionMode === 'select' ? '•' : ''}
+            </div>
+            <div className={menuItemStyle + ' ' + (interactionMode === 'move' ? css({ background: '#f5f3ee', '[data-theme=dark] &': { background: '#3d3d3a' } }) : '')} onClick={() => { setInteractionMode('move'); setEditOpen(false) }}>
+              <IconHand /> Move mode {interactionMode === 'move' ? '•' : ''}
+            </div>
             <div className={menuSepStyle} />
             <div className={menuItemStyle + ' ' + css({ color: '#c0392b !important' })} onClick={doClearAll}>
               <IconTrash /> Clear all
@@ -421,76 +460,35 @@ export default function Topbar() {
         )}
       </div>
       <div className={sepStyle} />
-      <button
-        className={btnStyle + ' ' + (interactionMode === 'select' ? css({ background: '#f0ede8', '[data-theme=dark] &': { background: '#3d3d3a' } }) : '')}
-        onClick={() => setInteractionMode('select')}
-      >
-        <IconCursor /> Select
-      </button>
-      <button
-        className={btnStyle + ' ' + (interactionMode === 'move' ? css({ background: '#f0ede8', '[data-theme=dark] &': { background: '#3d3d3a' } }) : '')}
-        onClick={() => setInteractionMode('move')}
-      >
-        <IconHand /> Move
-      </button>
-      <div className={sepStyle} />
       <button className={btnStyle} onClick={() => undo()} disabled={historyPast.length === 0} style={{ opacity: historyPast.length === 0 ? 0.45 : 1 }}>
         <IconUndo /> Undo
       </button>
-      <div className={sepStyle} />
-      <div style={{ position: 'relative' }} ref={settingsRef}>
-        <button className={btnStyle} onClick={() => { setSettingsOpen(o => !o); setHistoryOpen(false); setEditOpen(false) }}>
-          <IconSettings /> Settings <IconChevron />
-        </button>
-        {settingsOpen && (
-          <div className={menuStyle}>
-            <div style={{ padding: '6px 10px 4px', fontSize: 11, color: '#888780', fontWeight: 600 }}>Theme</div>
-            <div className={menuItemStyle} onClick={() => { setTheme('light'); setSettingsOpen(false) }}>
-              <IconSun /> Light {theme === 'light' ? '•' : ''}
-            </div>
-            <div className={menuItemStyle} onClick={() => { setTheme('dark'); setSettingsOpen(false) }}>
-              <IconMoon /> Dark {theme === 'dark' ? '•' : ''}
-            </div>
-            <div className={menuSepStyle} />
-            <div style={{ padding: '6px 10px 4px', fontSize: 11, color: '#888780', fontWeight: 600 }}>Workspace mode</div>
-            <div className={menuItemStyle} onClick={() => { setLayoutMode('free'); setSettingsOpen(false) }}>
-              <IconHand /> Free {layoutMode === 'free' ? '•' : ''}
-            </div>
-            <div className={menuItemStyle} onClick={() => { setLayoutMode('static'); setSettingsOpen(false) }}>
-              <IconGrid /> Static {layoutMode === 'static' ? '•' : ''}
-            </div>
-            <div className={menuSepStyle} />
-            <div className={menuItemStyle} onClick={() => { setHistoryOpen(true); setSettingsOpen(false) }}>
-              <IconHistory /> History
-            </div>
-          </div>
-        )}
-        {historyOpen && (
-          <div className={menuStyle + ' ' + css({ left: 'calc(100% + 8px)', top: 0, minWidth: '280px', maxWidth: '320px', maxHeight: '320px', overflowY: 'auto' })}>
-            <div style={{ padding: '6px 10px 8px', fontSize: 11, color: '#888780', fontWeight: 600 }}>Recent actions</div>
-            {actionHistory.length === 0 ? (
-              <div style={{ padding: '0 10px 10px', fontSize: 12, color: '#888780' }}>No actions yet.</div>
-            ) : (
-              [...actionHistory].reverse().map((action, index) => (
-                <div key={`${action}-${index}`} className={menuItemStyle} style={{ cursor: 'default' }}>
-                  <IconHistory /> {action}
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
       <div className={sepStyle} />
       <button className={btnStyle} onClick={() => updateZoom(-0.1)}><IconMinus /></button>
       <button className={btnStyle} onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
       <button className={btnStyle} onClick={() => updateZoom(0.1)}><IconPlus /></button>
       <div className={sepStyle} />
       <div style={{ position: 'relative' }} ref={moreRef}>
-        <button className={btnStyle} onClick={() => { setMoreOpen(o => !o); setEditOpen(false); setSettingsOpen(false); setHistoryOpen(false) }}>
+        <button className={btnStyle} onClick={() => { setMoreOpen(o => !o); setEditOpen(false) }}>
           <IconMore />
         </button>
         {moreOpen && (
-          <div className={menuStyle + ' ' + css({ right: 0, left: 'auto', minWidth: '210px' })}>
+          <div className={menuStyle + ' ' + css({ right: 0, left: 'auto', minWidth: '260px', maxHeight: '70vh', overflowY: 'auto' })}>
+            <div className={sectionTitleStyle}>Workspace</div>
+            <div className={menuItemStyle} onClick={() => { setTheme('light'); setMoreOpen(false) }}>
+              <IconSun /> Light theme {theme === 'light' ? '•' : ''}
+            </div>
+            <div className={menuItemStyle} onClick={() => { setTheme('dark'); setMoreOpen(false) }}>
+              <IconMoon /> Dark theme {theme === 'dark' ? '•' : ''}
+            </div>
+            <div className={menuItemStyle} onClick={() => { setLayoutMode('free'); setMoreOpen(false) }}>
+              <IconHand /> Free mode {layoutMode === 'free' ? '•' : ''}
+            </div>
+            <div className={menuItemStyle} onClick={() => { setLayoutMode('static'); setMoreOpen(false) }}>
+              <IconGrid /> Static mode {layoutMode === 'static' ? '•' : ''}
+            </div>
+            <div className={menuSepStyle} />
+            <div className={sectionTitleStyle}>Import / Export</div>
             <div className={menuItemStyle} onClick={doImportClick}>
               <IconImport /> Import from JSON
             </div>
@@ -504,8 +502,14 @@ export default function Topbar() {
               <IconExport /> Export to JSON
             </div>
             <div className={menuSepStyle} />
+            <div className={sectionTitleStyle}>Collaboration</div>
             <div className={menuItemStyle} onClick={doOpenCollaboration}>
               <IconUsers /> Collaboration
+            </div>
+            <div className={menuSepStyle} />
+            <div className={sectionTitleStyle}>History</div>
+            <div className={menuItemStyle} onClick={() => { setHistoryOpen(true); setMoreOpen(false) }}>
+              <IconHistory /> See history
             </div>
           </div>
         )}
@@ -648,6 +652,35 @@ export default function Topbar() {
               <div style={{ fontSize: 12, lineHeight: 1.6, color: modalSubtleColor, marginBottom: 12 }}>
                 Guests can edit the board, and you can track live cursors, remove participants, or close the room at any moment.
               </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: modalSubtleColor, fontWeight: 700, marginBottom: 6 }}>
+                  Collaboration server URL
+                </div>
+                <input
+                  value={collabServerUrl}
+                  onChange={e => setCollabServerUrl(e.target.value)}
+                  placeholder="ws://127.0.0.1:1235"
+                  className={css({
+                    width: '100%',
+                    height: '38px',
+                    borderRadius: '12px',
+                    border: '0.5px solid rgba(0,0,0,0.12)',
+                    background: '#fff',
+                    color: '#1a1a18',
+                    padding: '0 12px',
+                    fontSize: '12px',
+                    outline: 'none',
+                    '[data-theme=dark] &': {
+                      background: '#141412',
+                      color: '#f5f3ee',
+                      borderColor: 'rgba(255,255,255,0.08)',
+                    },
+                  })}
+                />
+                <div style={{ fontSize: 11, color: modalSubtleColor, marginTop: 6, lineHeight: 1.5 }}>
+                  Leave empty to use the default server for the current host. Set this to your own Node websocket server if you want a dedicated collaboration backend.
+                </div>
+              </div>
               <button
                 className={btnStyle + ' ' + css({
                   background: '#1a1a18 !important',
@@ -684,6 +717,11 @@ export default function Topbar() {
                     <div style={{ fontSize: 12, color: modalSubtleColor, lineHeight: 1.6 }}>
                       Room <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}>{collaboration.roomId}</span>
                     </div>
+                    {collaboration.serverUrl && (
+                      <div style={{ fontSize: 12, color: modalSubtleColor, lineHeight: 1.6 }}>
+                        Server <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}>{collaboration.serverUrl}</span>
+                      </div>
+                    )}
                     <div style={{ fontSize: 12, color: modalSubtleColor, lineHeight: 1.6 }}>
                       You are {collaboration.selfName} {collaboration.isHost ? '(host)' : '(guest)'}
                     </div>
@@ -724,6 +762,74 @@ export default function Topbar() {
                   </button>
                 </div>
               </div>
+
+              {collaboration.isHost && collaboration.pendingRequests.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 12, color: modalSubtleColor, fontWeight: 700, marginBottom: 10 }}>
+                    Join requests ({collaboration.pendingRequests.length})
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {collaboration.pendingRequests.map(request => (
+                      <div
+                        key={request.id}
+                        className={css({
+                          borderRadius: '16px',
+                          border: '0.5px solid rgba(0,0,0,0.08)',
+                          background: '#f8f6f2',
+                          padding: '12px 14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '14px',
+                          '[data-theme=dark] &': {
+                            background: '#1f1f1d',
+                            borderColor: 'rgba(255,255,255,0.08)',
+                          },
+                        })}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ width: 12, height: 12, borderRadius: '50%', background: request.color, flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: modalTextColor }}>{request.name}</div>
+                            <div style={{ fontSize: 11, color: modalSubtleColor }}>Waiting for host approval</div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <button className={btnStyle} onClick={() => doApproveRequest(request.id, request.name)}>
+                            <IconCheck /> Accept
+                          </button>
+                          <button className={btnStyle} onClick={() => doRejectRequest(request.id, request.name)}>
+                            <IconUserMinus /> Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!collaboration.isHost && collaboration.awaitingApproval && (
+                <div
+                  className={css({
+                    marginTop: '16px',
+                    borderRadius: '16px',
+                    border: '0.5px solid rgba(0,0,0,0.08)',
+                    background: '#f8f6f2',
+                    padding: '14px 16px',
+                    '[data-theme=dark] &': {
+                      background: '#1f1f1d',
+                      borderColor: 'rgba(255,255,255,0.08)',
+                    },
+                  })}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 700, color: modalTextColor, marginBottom: 4 }}>
+                    Waiting for host approval
+                  </div>
+                  <div style={{ fontSize: 12, color: modalSubtleColor, lineHeight: 1.6 }}>
+                    The host needs to accept your request before you can see and edit the shared workspace.
+                  </div>
+                </div>
+              )}
 
               <div style={{ marginTop: 16 }}>
                 <div style={{ fontSize: 12, color: modalSubtleColor, fontWeight: 700, marginBottom: 10 }}>
@@ -775,6 +881,91 @@ export default function Topbar() {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
             <button className={btnStyle} onClick={() => setCollabOpen(false)}>
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    {historyOpen && (
+      <div
+        className={css({
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(18,18,16,0.36)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 900,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+        })}
+        onClick={() => setHistoryOpen(false)}
+      >
+        <div
+          className={css({
+            width: 'min(760px, 100%)',
+            maxHeight: '80vh',
+            overflow: 'hidden',
+            borderRadius: '22px',
+            background: '#fff',
+            border: '0.5px solid rgba(0,0,0,0.1)',
+            boxShadow: '0 28px 80px rgba(0,0,0,0.18)',
+            padding: '18px',
+            display: 'flex',
+            flexDirection: 'column',
+            '[data-theme=dark] &': {
+              background: '#2c2c2a',
+              borderColor: 'rgba(255,255,255,0.08)',
+            },
+          })}
+          onClick={e => e.stopPropagation()}
+        >
+          <div style={{ fontSize: 18, fontWeight: 700, color: modalTextColor, marginBottom: 6 }}>
+            History
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.6, color: modalSubtleColor, marginBottom: 14 }}>
+            Full workspace operation history with time and actor.
+          </div>
+          <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingRight: 4 }}>
+            {actionHistory.length === 0 ? (
+              <div style={{ fontSize: 13, color: modalSubtleColor, padding: '4px 2px 12px' }}>
+                No actions yet.
+              </div>
+            ) : (
+              [...actionHistory].reverse().map(entry => (
+                <div
+                  key={entry.id}
+                  className={css({
+                    borderRadius: '16px',
+                    border: '0.5px solid rgba(0,0,0,0.08)',
+                    background: '#f8f6f2',
+                    padding: '12px 14px',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: '14px',
+                    '[data-theme=dark] &': {
+                      background: '#1f1f1d',
+                      borderColor: 'rgba(255,255,255,0.08)',
+                    },
+                  })}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: modalTextColor }}>{entry.label}</div>
+                    <div style={{ fontSize: 11, color: modalSubtleColor, marginTop: 4 }}>
+                      {entry.actor}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, color: modalSubtleColor, whiteSpace: 'nowrap' }}>
+                    {formatHistoryTime(entry.createdAt)}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
+            <button className={btnStyle} onClick={() => setHistoryOpen(false)}>
               Done
             </button>
           </div>
