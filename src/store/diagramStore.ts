@@ -111,6 +111,7 @@ export const useDiagram = create<DiagramState>((set, get) => ({
       desc: opts.desc ?? '',
       bg,
       fg,
+      shape: opts.shape ?? 'rect',
       family: opts.family ?? 'inherit',
       size: opts.size ?? 13,
       bold: opts.bold ?? false,

@@ -236,6 +236,18 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
   ) : null
 
   const showPorts = isSelected || isConnSrc || (cmode && isHovering)
+  const getPortPositionStyle = (side: PortSide): React.CSSProperties => {
+    if (node.shape === 'triangle') {
+      if (side === 'pt') return { top: -6, left: '50%', transform: 'translateX(-50%)' }
+      if (side === 'pb') return { bottom: -6, left: '50%', transform: 'translateX(-50%)' }
+      if (side === 'pl') return { left: '25%', top: '50%', transform: 'translate(-50%, -50%)' }
+      return { left: '75%', top: '50%', transform: 'translate(-50%, -50%)' }
+    }
+    if (side === 'pt') return { top: -6, left: '50%', transform: 'translateX(-50%)' }
+    if (side === 'pb') return { bottom: -6, left: '50%', transform: 'translateX(-50%)' }
+    if (side === 'pl') return { left: -6, top: '50%', transform: 'translateY(-50%)' }
+    return { right: -6, top: '50%', transform: 'translateY(-50%)' }
+  }
   const ports = (
     <div className="ports" style={{ opacity: showPorts ? 1 : 0, transition: 'opacity 0.15s', pointerEvents: 'none' }}>
       {(['pt','pb','pl','pr'] as const).map(pos => {
@@ -243,14 +255,12 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
           width: 10, height: 10, background: csrc === node.id && csrcSide === pos ? '#22c57a' : '#6c6cff', borderRadius: '50%',
           border: '2px solid #fff', position: 'absolute', cursor: 'crosshair',
           zIndex: 20, transition: 'transform 0.1s', pointerEvents: 'all',
-          ...(pos === 'pt' ? { top: -6, left: '50%', transform: 'translateX(-50%)' } :
-             pos === 'pb' ? { bottom: -6, left: '50%', transform: 'translateX(-50%)' } :
-             pos === 'pl' ? { left: -6, top: '50%', transform: 'translateY(-50%)' } :
-             { right: -6, top: '50%', transform: 'translateY(-50%)' })
+          ...getPortPositionStyle(pos)
         }
         return (
           <div
             key={pos}
+            id={`port-${node.id}-${pos}`}
             className="port"
             style={style}
             onMouseDown={handlePortMouseDown(pos)}
@@ -263,6 +273,18 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
   )
 
   const textDecoration = [node.underline ? 'underline' : '', node.strike ? 'line-through' : ''].filter(Boolean).join(' ')
+  const isCircle = node.shape === 'circle'
+  const isDiamond = node.shape === 'diamond'
+  const isTriangle = node.shape === 'triangle'
+  const nodeClipPath = isDiamond
+    ? 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)'
+    : isTriangle
+      ? 'polygon(50% 0%, 0% 100%, 100% 100%)'
+      : undefined
+  const nodeBorderRadius = isCircle ? 999 : node.radius
+  const nodePadding = isTriangle ? '18px 14px 12px' : isDiamond ? '18px 16px' : undefined
+  const nodeMinWidth = isCircle ? 110 : isTriangle ? 120 : isDiamond ? 120 : undefined
+  const nodeMinHeight = isCircle ? 110 : isTriangle ? 96 : isDiamond ? 110 : undefined
   const titleTextStyle: React.CSSProperties = {
     fontSize: node.size,
     fontFamily: node.family,
@@ -292,13 +314,15 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
         ref={nodeRef}
         style={{
           position: 'relative',
-          minWidth: 80,
+          minWidth: nodeMinWidth ?? 80,
+          minHeight: nodeMinHeight,
           flex: '0 0 auto',
-          borderRadius: node.radius,
+          borderRadius: nodeBorderRadius,
+          clipPath: nodeClipPath,
           cursor: 'move',
           background: isMultiSel ? 'rgba(79,124,255,0.18)' : 'rgba(255,255,255,0.1)',
           border: `1.5px solid ${multiBorderColor}`,
-          padding: '8px 12px',
+          padding: nodePadding ?? '8px 12px',
           textAlign: 'center',
           display: 'flex',
           flexDirection: 'column',
@@ -331,14 +355,16 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
         style={{
           background: node.bg,
           color: node.fg,
-          borderRadius: node.radius,
+          borderRadius: nodeBorderRadius,
+          clipPath: nodeClipPath,
           position: 'absolute',
           left: node.x,
           top: node.y,
           userSelect: 'none',
           border: `2px solid ${multiBorderColor}`,
           boxShadow,
-          minWidth: 120,
+          minWidth: nodeMinWidth ?? 120,
+          minHeight: nodeMinHeight,
           outline: isMultiSel ? '1.5px dashed rgba(79,124,255,0.8)' : 'none',
           outlineOffset: 4,
         }}
@@ -371,11 +397,12 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
       style={{
         background: node.bg,
         color: node.fg,
-        borderRadius: node.radius,
+        borderRadius: nodeBorderRadius,
+        clipPath: nodeClipPath,
         position: 'absolute',
         left: node.x,
         top: node.y,
-        padding: '10px 14px',
+        padding: nodePadding ?? '10px 14px',
         cursor: 'move',
         textAlign: 'center',
         display: 'flex',
@@ -385,6 +412,8 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
         userSelect: 'none',
         border: `2px solid ${multiBorderColor}`,
         boxShadow,
+        minWidth: nodeMinWidth,
+        minHeight: nodeMinHeight,
         outline: isMultiSel ? '1.5px dashed rgba(79,124,255,0.8)' : 'none',
         outlineOffset: 4,
         transition: 'box-shadow 0.12s, border-color 0.12s',

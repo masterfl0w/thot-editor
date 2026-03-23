@@ -313,6 +313,16 @@ export default function PropertiesPanel() {
                 style={{ resize: 'vertical', minHeight: 48, lineHeight: 1.5 }}
                 onChange={e => updateNode(node.id, { desc: e.target.value })} />
             </div>
+            <div style={{ marginBottom: 11 }}>
+              <label className={labelStyle}>Shape</label>
+              <select className={inputStyle} value={node.shape}
+                onChange={e => updateNode(node.id, { shape: e.target.value as typeof node.shape })}>
+                <option value="rect">Rectangle</option>
+                <option value="circle">Circle</option>
+                <option value="diamond">Diamond</option>
+                <option value="triangle">Triangle</option>
+              </select>
+            </div>
             <div className={sepStyle} />
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Background</label>

@@ -4,37 +4,59 @@ import type { PortSide } from '../types'
 
 type TooltipState = { x: number; y: number; label: string; desc: string } | null
 type EdgeEndpoints = { sx: number; sy: number; ex: number; ey: number }
-type RectInfo = { x: number; y: number; w: number; h: number; cx: number; cy: number }
-
 export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElement | null> }) {
   const { edges, nodes, selEdge, selectEdge, cmode, csrc, csrcSide, pointer, viewport, zoom } = useDiagram()
   const [tooltip, setTooltip] = useState<TooltipState>(null)
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
 
-  const getAbsRect = (id: string) => {
-    const el = document.getElementById('nd-' + id)
+  const screenToWorld = (x: number, y: number) => ({
+    x: x / zoom + viewport.x,
+    y: y / zoom + viewport.y,
+  })
+
+  const getPortPoint = (id: string, side: PortSide) => {
+    const el = document.getElementById(`port-${id}-${side}`)
     const cw = canvasRef.current
     if (!el || !cw) return null
     const r = el.getBoundingClientRect()
     const wr = cw.getBoundingClientRect()
-    return { x: r.left - wr.left, y: r.top - wr.top, w: r.width, h: r.height,
-      cx: r.left - wr.left + r.width / 2, cy: r.top - wr.top + r.height / 2 }
-  }
-
-  const pointOnRect = (rect: RectInfo, side: PortSide) => {
-    if (side === 'pt') return { x: rect.cx, y: rect.y }
-    if (side === 'pb') return { x: rect.cx, y: rect.y + rect.h }
-    if (side === 'pl') return { x: rect.x, y: rect.cy }
-    return { x: rect.x + rect.w, y: rect.cy }
+    return screenToWorld(
+      r.left - wr.left + r.width / 2,
+      r.top - wr.top + r.height / 2,
+    )
   }
 
   const edgePts = (fid: string, tid: string, fromSide?: PortSide, toSide?: PortSide): EdgeEndpoints | null => {
-    const a = getAbsRect(fid), b = getAbsRect(tid)
-    if (!a || !b) return null
     if (fromSide && toSide) {
-      const s = pointOnRect(a, fromSide)
-      const e = pointOnRect(b, toSide)
+      const s = getPortPoint(fid, fromSide)
+      const e = getPortPoint(tid, toSide)
+      if (!s || !e) return null
       return { sx: s.x, sy: s.y, ex: e.x, ey: e.y }
+    }
+    const aEl = document.getElementById('nd-' + fid)
+    const bEl = document.getElementById('nd-' + tid)
+    const cw = canvasRef.current
+    if (!aEl || !bEl || !cw) return null
+    const wr = cw.getBoundingClientRect()
+    const ar = aEl.getBoundingClientRect()
+    const br = bEl.getBoundingClientRect()
+    const aTopLeft = screenToWorld(ar.left - wr.left, ar.top - wr.top)
+    const bTopLeft = screenToWorld(br.left - wr.left, br.top - wr.top)
+    const a = {
+      x: aTopLeft.x,
+      y: aTopLeft.y,
+      w: ar.width / zoom,
+      h: ar.height / zoom,
+      cx: aTopLeft.x + ar.width / (2 * zoom),
+      cy: aTopLeft.y + ar.height / (2 * zoom),
+    }
+    const b = {
+      x: bTopLeft.x,
+      y: bTopLeft.y,
+      w: br.width / zoom,
+      h: br.height / zoom,
+      cx: bTopLeft.x + br.width / (2 * zoom),
+      cy: bTopLeft.y + br.height / (2 * zoom),
     }
     const dx = b.cx - a.cx, dy = b.cy - a.cy
     const m = Math.abs(dy / (dx || 0.001)), mb = a.h / (a.w || 1)
@@ -167,12 +189,9 @@ export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HT
           )
         })}
         {cmode && csrc && csrcSide && pointer && (() => {
-          const srcRect = getAbsRect(csrc)
-          if (!srcRect) return null
-          const src = pointOnRect(srcRect, csrcSide)
-          const px = (pointer.x - viewport.x) * zoom
-          const py = (pointer.y - viewport.y) * zoom
-          const preview = edgeShape({ sx: src.x, sy: src.y, ex: px, ey: py }, 'straight', 0)
+          const src = getPortPoint(csrc, csrcSide)
+          if (!src) return null
+          const preview = edgeShape({ sx: src.x, sy: src.y, ex: pointer.x, ey: pointer.y }, 'straight', 0)
           return (
             <path
               d={preview.path}

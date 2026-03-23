@@ -1,4 +1,5 @@
 export type PortSide = 'pt' | 'pb' | 'pl' | 'pr'
+export type NodeShape = 'rect' | 'circle' | 'diamond' | 'triangle'
 
 export interface DiagramNode {
   id: string
@@ -6,6 +7,7 @@ export interface DiagramNode {
   desc: string
   bg: string
   fg: string
+  shape: NodeShape
   family: string
   size: number
   bold: boolean
