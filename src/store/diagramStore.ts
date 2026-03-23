@@ -2,6 +2,14 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import type { DiagramNode, TextNode, Edge, ContextMenuTarget, PortSide } from '../types'
 
+type WorkspaceSnapshot = {
+  nodes: Record<string, DiagramNode>
+  texts: Record<string, TextNode>
+  edges: Edge[]
+  viewport: { x: number; y: number }
+  zoom: number
+}
+
 function lum(h: string) {
   const r = parseInt(h.slice(1, 3), 16) / 255
   const g = parseInt(h.slice(3, 5), 16) / 255
@@ -37,6 +45,9 @@ interface DiagramState {
   texts: Record<string, TextNode>
   edges: Edge[]
   sceneClipboard: { nodes: DiagramNode[]; texts: TextNode[]; edges: Edge[] } | null
+  historyPast: WorkspaceSnapshot[]
+  historyFuture: WorkspaceSnapshot[]
+  actionHistory: string[]
   theme: 'light' | 'dark'
   layoutMode: 'free' | 'static'
   viewport: { x: number; y: number }
@@ -87,6 +98,7 @@ interface DiagramState {
   setTheme: (theme: 'light' | 'dark') => void
   toggleTheme: () => void
   setLayoutMode: (layoutMode: 'free' | 'static') => void
+  undo: () => boolean
   copySelectionToClipboard: () => boolean
   pasteClipboard: (at?: { x: number; y: number } | null) => boolean
   setViewport: (viewport: { x: number; y: number }) => void
@@ -100,14 +112,60 @@ const DEFAULT_MODE = 'Select mode: drag to multi-select · Shift-click to add to
 const MOVE_MODE = 'Move mode: drag or scroll to pan · Right-click to add'
 const STORAGE_KEY = 'thot-editor-workspace'
 const SNAP_STEP = 24
+const MAX_UNDO = 50
+const MAX_ACTION_HISTORY = 120
 const DEFAULT_THEME: 'light' | 'dark' =
   typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 
+function cloneWorkspaceSnapshot(snapshot: WorkspaceSnapshot): WorkspaceSnapshot {
+  return {
+    nodes: Object.fromEntries(Object.entries(snapshot.nodes).map(([id, node]) => [id, { ...node, children: [...node.children] }])),
+    texts: Object.fromEntries(Object.entries(snapshot.texts).map(([id, text]) => [id, { ...text }])),
+    edges: snapshot.edges.map(edge => ({ ...edge })),
+    viewport: { ...snapshot.viewport },
+    zoom: snapshot.zoom,
+  }
+}
+
+function getWorkspaceSnapshot(state: Pick<DiagramState, 'nodes' | 'texts' | 'edges' | 'viewport' | 'zoom'>): WorkspaceSnapshot {
+  return cloneWorkspaceSnapshot({
+    nodes: state.nodes,
+    texts: state.texts,
+    edges: state.edges,
+    viewport: state.viewport,
+    zoom: state.zoom,
+  })
+}
+
+function sameWorkspace(a: WorkspaceSnapshot, b: WorkspaceSnapshot) {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
 export const useDiagram = create<DiagramState>()(persist((set, get) => ({
+  ...(() => {
+    const applyWorkspaceChange = (
+      action: string,
+      updater: Partial<DiagramState> | ((state: DiagramState) => Partial<DiagramState>),
+    ) => {
+      const before = getWorkspaceSnapshot(get())
+      set(updater as never)
+      const after = getWorkspaceSnapshot(get())
+      if (sameWorkspace(before, after)) return
+      set(state => ({
+        historyPast: [...state.historyPast.slice(-(MAX_UNDO - 1)), before],
+        historyFuture: [],
+        actionHistory: [...state.actionHistory.slice(-(MAX_ACTION_HISTORY - 1)), action],
+      }))
+    }
+
+    return {
   nodes: {},
   texts: {},
   edges: [],
   sceneClipboard: null,
+  historyPast: [],
+  historyFuture: [],
+  actionHistory: [],
   theme: DEFAULT_THEME,
   layoutMode: 'free',
   viewport: { x: 0, y: 0 },
@@ -160,7 +218,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
       const parent = { ...nodes[opts.parent], children: [...nodes[opts.parent].children, id] }
       newNodes[opts.parent] = parent
     }
-    set({ nodes: newNodes, nc: newNc })
+    applyWorkspaceChange('Add box', { nodes: newNodes, nc: newNc })
     return id
   },
 
@@ -185,14 +243,14 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
       align: opts.align ?? 'left',
       opacity: opts.opacity ?? 100,
     }
-    set({ texts: { ...texts, [id]: text }, tc: newTc })
+    applyWorkspaceChange('Add text', { texts: { ...texts, [id]: text }, tc: newTc })
     return id
   },
 
   addEdge: (from, to, fromSide = 'pr', toSide = 'pl') => {
     const { edges, nodes } = get()
     if (!nodes[from] || !nodes[to]) return
-    set({
+    applyWorkspaceChange('Add link', {
       edges: [
         ...edges,
         { from, to, fromSide, toSide, label: '', desc: '', color: '#888780', style: 'solid', arrow: 'end', route: 'straight', bend: 0 },
@@ -209,7 +267,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
     const newNodes = { ...get().nodes }
     delete newNodes[id]
     const newEdges = edges.filter(e => e.from !== id && e.to !== id)
-    set({
+    applyWorkspaceChange('Delete box', {
       nodes: newNodes,
       edges: newEdges,
       selNode: selNode === id ? null : selNode,
@@ -221,7 +279,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
     if (!texts[id]) return
     const newTexts = { ...texts }
     delete newTexts[id]
-    set({
+    applyWorkspaceChange('Delete text', {
       texts: newTexts,
       selText: selText === id ? null : selText,
       editingTextId: editingTextId === id ? null : editingTextId,
@@ -230,26 +288,26 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
 
   deleteEdge: (idx) => {
     const { edges } = get()
-    set({ edges: edges.filter((_, i) => i !== idx), selEdge: null })
+    applyWorkspaceChange('Delete link', { edges: edges.filter((_, i) => i !== idx), selEdge: null })
   },
 
   updateNode: (id, patch) => {
     const { nodes } = get()
     if (!nodes[id]) return
-    set({ nodes: { ...nodes, [id]: { ...nodes[id], ...patch } } })
+    applyWorkspaceChange('Edit box', { nodes: { ...nodes, [id]: { ...nodes[id], ...patch } } })
   },
 
   updateText: (id, patch) => {
     const { texts } = get()
     if (!texts[id]) return
-    set({ texts: { ...texts, [id]: { ...texts[id], ...patch } } })
+    applyWorkspaceChange('Edit text', { texts: { ...texts, [id]: { ...texts[id], ...patch } } })
   },
 
   updateEdge: (idx, patch) => {
     const { edges } = get()
     const newEdges = [...edges]
     newEdges[idx] = { ...newEdges[idx], ...patch }
-    set({ edges: newEdges })
+    applyWorkspaceChange('Edit link', { edges: newEdges })
   },
 
   selectNode: (id) => {
@@ -302,7 +360,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
     const newNodes = { ...get().nodes }
     newNodes[childId] = { ...newNodes[childId], parent: parentId }
     newNodes[parentId] = { ...newNodes[parentId], children: [...newNodes[parentId].children, childId] }
-    set({ nodes: newNodes })
+    applyWorkspaceChange('Nest box', { nodes: newNodes })
   },
 
   detachNode: (id, place = true, ax, ay) => {
@@ -319,12 +377,12 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
       x: place ? (ax ?? node.x ?? 80) : node.x,
       y: place ? (ay ?? node.y ?? 80) : node.y,
     }
-    set({ nodes: newNodes })
+    applyWorkspaceChange('Detach box', { nodes: newNodes })
   },
 
   clearAll: () => {
     const { interactionMode } = get()
-    set({
+    applyWorkspaceChange('Clear workspace', {
       nodes: {},
       texts: {},
       edges: [],
@@ -363,7 +421,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
     if (!texts[id]) return
     const patch: Partial<TextNode> = {}
     if (content !== undefined) patch.content = content
-    set({
+    applyWorkspaceChange('Finish text edit', {
       texts: { ...texts, [id]: { ...texts[id], ...patch } },
       editingTextId: null,
       modeText: interactionMode === 'move' ? MOVE_MODE : DEFAULT_MODE,
@@ -403,6 +461,29 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
     layoutMode,
     modeText: layoutMode === 'static' ? 'Static mode: nodes snap to grid positions' : DEFAULT_MODE,
   }),
+
+  undo: () => {
+    const state = get()
+    if (state.historyPast.length === 0) return false
+    const previous = state.historyPast[state.historyPast.length - 1]
+    const current = getWorkspaceSnapshot(state)
+    set({
+      ...cloneWorkspaceSnapshot(previous),
+      historyPast: state.historyPast.slice(0, -1),
+      historyFuture: [current, ...state.historyFuture].slice(0, MAX_UNDO),
+      selNode: null,
+      selText: null,
+      selEdge: null,
+      multiSel: new Set(),
+      editingTextId: null,
+      ctxTarget: null,
+      cmode: false,
+      csrc: null,
+      csrcSide: null,
+      modeText: 'Undid last action',
+    })
+    return true
+  },
 
   copySelectionToClipboard: () => {
     const { nodes, texts, edges, multiSel, selNode, selText } = get()
@@ -514,7 +595,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
       ...sceneClipboard.texts.map(text => textIdMap.get(text.id)!).filter(Boolean),
     ])
 
-    set({
+    applyWorkspaceChange('Paste selection', {
       nodes: newNodes,
       texts: newTexts,
       edges: newEdges,
@@ -545,7 +626,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   moveNode: (id, x, y) => {
     const { nodes, layoutMode } = get()
     if (!nodes[id]) return
-    set({
+    applyWorkspaceChange('Move box', {
       nodes: {
         ...nodes,
         [id]: {
@@ -560,7 +641,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   moveText: (id, x, y) => {
     const { texts, layoutMode } = get()
     if (!texts[id]) return
-    set({
+    applyWorkspaceChange('Move text', {
       texts: {
         ...texts,
         [id]: {
@@ -571,6 +652,8 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
       },
     })
   },
+}
+  })(),
 }), {
   name: STORAGE_KEY,
   storage: createJSONStorage(() => localStorage),
@@ -578,6 +661,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
     nodes: state.nodes,
     texts: state.texts,
     edges: state.edges,
+    actionHistory: state.actionHistory,
     theme: state.theme,
     layoutMode: state.layoutMode,
     viewport: state.viewport,
@@ -589,6 +673,8 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   onRehydrateStorage: () => (state) => {
     if (!state) return
     state.pointer = null
+    state.historyPast = []
+    state.historyFuture = []
     state.selNode = null
     state.selText = null
     state.selEdge = null

@@ -20,6 +20,7 @@ export default function App() {
     selectNode,
     selectText,
     startEditText,
+    undo,
     copySelectionToClipboard,
     pasteClipboard,
     viewport,
@@ -71,6 +72,11 @@ export default function App() {
           pasteClipboard(pointer ?? getFallbackPoint())
           return
         }
+        if (key === 'z') {
+          e.preventDefault()
+          undo()
+          return
+        }
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (e.key === 'Escape') {
@@ -101,13 +107,14 @@ export default function App() {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [editingTextId, cmode, selNode, selText, selEdge, multiSel, viewport.x, viewport.y, pointer, zoom, copySelectionToClipboard, pasteClipboard])
+  }, [editingTextId, cmode, selNode, selText, selEdge, multiSel, viewport.x, viewport.y, pointer, zoom, copySelectionToClipboard, pasteClipboard, undo])
 
   return (
     <div className={css({
       position: 'relative',
       height: '100vh',
       overflow: 'hidden',
+      overscrollBehavior: 'none',
       background: 'linear-gradient(180deg, #ece8e0 0%, #e7e1d7 100%)',
       '[data-theme=dark] &': {
         background: 'linear-gradient(180deg, #171715 0%, #121210 100%)',

@@ -76,6 +76,18 @@ const IconGrid = () => (
     <rect x="8" y="8" width="3" height="3" rx="0.6" stroke="currentColor" strokeWidth="1"/>
   </svg>
 )
+const IconHistory = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <path d="M2.1 6.5a4.4 4.4 0 108.8 0 4.4 4.4 0 00-7.4-3.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M2.1 2.7v2.1h2.1M6.5 4v2.7l1.8 1" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+const IconUndo = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <path d="M4.3 4.1H9a2.9 2.9 0 010 5.8H4.8" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M4.6 2.6L2.2 5l2.4 2.4" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
 
 const topbarStyle = css({
   height: '48px',
@@ -174,18 +186,22 @@ const menuSepStyle = css({
 export default function Topbar() {
   const [editOpen, setEditOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const editRef = useRef<HTMLDivElement>(null)
   const settingsRef = useRef<HTMLDivElement>(null)
   const {
     addBox, addText, clearAll, selectNode, selectText, startEditText,
     interactionMode, setInteractionMode, zoom, setZoom,
-    theme, setTheme, layoutMode, setLayoutMode,
+    theme, setTheme, layoutMode, setLayoutMode, actionHistory, historyPast, undo,
   } = useDiagram()
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (!editRef.current?.contains(e.target as Node)) setEditOpen(false)
-      if (!settingsRef.current?.contains(e.target as Node)) setSettingsOpen(false)
+      if (!settingsRef.current?.contains(e.target as Node)) {
+        setSettingsOpen(false)
+        setHistoryOpen(false)
+      }
     }
     document.addEventListener('click', onClick)
     return () => document.removeEventListener('click', onClick)
@@ -248,8 +264,12 @@ export default function Topbar() {
         <IconHand /> Move
       </button>
       <div className={sepStyle} />
+      <button className={btnStyle} onClick={() => undo()} disabled={historyPast.length === 0} style={{ opacity: historyPast.length === 0 ? 0.45 : 1 }}>
+        <IconUndo /> Undo
+      </button>
+      <div className={sepStyle} />
       <div style={{ position: 'relative' }} ref={settingsRef}>
-        <button className={btnStyle} onClick={() => { setSettingsOpen(o => !o); setEditOpen(false) }}>
+        <button className={btnStyle} onClick={() => { setSettingsOpen(o => !o); setHistoryOpen(false); setEditOpen(false) }}>
           <IconSettings /> Settings <IconChevron />
         </button>
         {settingsOpen && (
@@ -269,6 +289,24 @@ export default function Topbar() {
             <div className={menuItemStyle} onClick={() => { setLayoutMode('static'); setSettingsOpen(false) }}>
               <IconGrid /> Static {layoutMode === 'static' ? '•' : ''}
             </div>
+            <div className={menuSepStyle} />
+            <div className={menuItemStyle} onClick={() => { setHistoryOpen(true); setSettingsOpen(false) }}>
+              <IconHistory /> History
+            </div>
+          </div>
+        )}
+        {historyOpen && (
+          <div className={menuStyle + ' ' + css({ left: 'calc(100% + 8px)', top: 0, minWidth: '280px', maxWidth: '320px', maxHeight: '320px', overflowY: 'auto' })}>
+            <div style={{ padding: '6px 10px 8px', fontSize: 11, color: '#888780', fontWeight: 600 }}>Recent actions</div>
+            {actionHistory.length === 0 ? (
+              <div style={{ padding: '0 10px 10px', fontSize: 12, color: '#888780' }}>No actions yet.</div>
+            ) : (
+              [...actionHistory].reverse().map((action, index) => (
+                <div key={`${action}-${index}`} className={menuItemStyle} style={{ cursor: 'default' }}>
+                  <IconHistory /> {action}
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>
@@ -276,9 +314,6 @@ export default function Topbar() {
       <button className={btnStyle} onClick={() => updateZoom(-0.1)}><IconMinus /></button>
       <button className={btnStyle} onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
       <button className={btnStyle} onClick={() => updateZoom(0.1)}><IconPlus /></button>
-      <div className={sepStyle} />
-      <button className={btnStyle} onClick={doAddBox}><IconBox /> Box</button>
-      <button className={btnStyle} onClick={doAddText}><IconText /> Text</button>
     </div>
   )
 }

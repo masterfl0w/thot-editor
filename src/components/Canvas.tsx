@@ -205,6 +205,8 @@ export default function Canvas() {
         width: '100%',
         height: '100%',
         overflow: 'hidden',
+        overscrollBehavior: 'none',
+        touchAction: 'none',
         cursor: isPanning ? 'grabbing' : interactionMode === 'move' ? 'grab' : 'crosshair',
         background: isDark ? '#1a1a18' : '#f5f3ee',
       }}
