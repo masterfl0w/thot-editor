@@ -1,6 +1,6 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useState } from 'react'
 import { useDiagram } from '../store/diagramStore'
-import type { DiagramNode as DiagramNodeType } from '../types'
+import type { DiagramNode as DiagramNodeType, PortSide } from '../types'
 
 const THRESH = 6
 
@@ -13,7 +13,7 @@ interface Props {
 
 export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) {
   const {
-    selectNode, toggleMultiSel, selNode, csrc, multiSel, cmode,
+    selectNode, toggleMultiSel, selNode, csrc, csrcSide, multiSel, cmode,
     attachChild, detachNode, addEdge, cancelConnect,
     setCtxTarget, moveNode,
   } = useDiagram()
@@ -28,6 +28,7 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
   const multiDragRef = useRef({ active: false, startX: 0, startY: 0, origins: {} as Record<string, {x:number,y:number}> })
   const dragOverRef = useRef<string | null>(null)
   const nodeRef = useRef<HTMLDivElement>(null)
+  const [isHovering, setIsHovering] = useState(false)
 
   const findDropTarget = useCallback((cx: number, cy: number, excl: string): string | null => {
     const allNodes = useDiagram.getState().nodes
@@ -158,11 +159,6 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
     e.stopPropagation()
     if (dragRef.current.moved) return
     if (cmode) {
-      if (node.id !== csrc) {
-        addEdge(csrc!, node.id)
-        cancelConnect()
-        selectNode(node.id)
-      }
       return
     }
     if (e.shiftKey) {
@@ -178,11 +174,32 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
     setCtxTarget({ type: 'node', id: node.id, x: e.clientX, y: e.clientY })
   }
 
-  const handlePortMouseDown = (e: React.MouseEvent) => {
+  const handlePortMouseDown = (side: PortSide) => (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
+    if (cmode) return
     selectNode(node.id)
-    useDiagram.getState().startConnect()
+    useDiagram.getState().startConnect(node.id, side)
+  }
+
+  const handlePortMouseUp = (side: PortSide) => (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    if (!cmode || !csrc || !csrcSide || csrc === node.id) return
+    addEdge(csrc, node.id, csrcSide, side)
+    cancelConnect()
+    selectNode(node.id)
+  }
+
+  const handlePortClick = (side: PortSide) => (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    if (cmode && csrc && csrcSide && csrc !== node.id) {
+      addEdge(csrc, node.id, csrcSide, side)
+      cancelConnect()
+      selectNode(node.id)
+      return
+    }
   }
 
   const borderColor = isSelected ? '#6c6cff' : isConnSrc ? '#22c57a' : (isChild ? 'rgba(255,255,255,0.25)' : 'transparent')
@@ -218,11 +235,12 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
     </div>
   ) : null
 
+  const showPorts = isSelected || isConnSrc || (cmode && isHovering)
   const ports = (
-    <div className="ports" style={{ opacity: isSelected || isConnSrc ? 1 : 0, transition: 'opacity 0.15s', pointerEvents: 'none' }}>
+    <div className="ports" style={{ opacity: showPorts ? 1 : 0, transition: 'opacity 0.15s', pointerEvents: 'none' }}>
       {(['pt','pb','pl','pr'] as const).map(pos => {
         const style: React.CSSProperties = {
-          width: 10, height: 10, background: '#6c6cff', borderRadius: '50%',
+          width: 10, height: 10, background: csrc === node.id && csrcSide === pos ? '#22c57a' : '#6c6cff', borderRadius: '50%',
           border: '2px solid #fff', position: 'absolute', cursor: 'crosshair',
           zIndex: 20, transition: 'transform 0.1s', pointerEvents: 'all',
           ...(pos === 'pt' ? { top: -6, left: '50%', transform: 'translateX(-50%)' } :
@@ -230,7 +248,16 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
              pos === 'pl' ? { left: -6, top: '50%', transform: 'translateY(-50%)' } :
              { right: -6, top: '50%', transform: 'translateY(-50%)' })
         }
-        return <div key={pos} style={style} onMouseDown={handlePortMouseDown} />
+        return (
+          <div
+            key={pos}
+            className="port"
+            style={style}
+            onMouseDown={handlePortMouseDown(pos)}
+            onMouseUp={handlePortMouseUp(pos)}
+            onClick={handlePortClick(pos)}
+          />
+        )
       })}
     </div>
   )
@@ -284,6 +311,8 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
         onMouseDown={handleMouseDown}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
       >
         {selectionBadge}
         {ports}
@@ -315,6 +344,8 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
         }}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
       >
         {selectionBadge}
         {ports}
@@ -361,6 +392,8 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
       onMouseDown={handleMouseDown}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
     >
       {selectionBadge}
       {ports}

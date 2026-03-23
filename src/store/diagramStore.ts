@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { DiagramNode, TextNode, Edge, ContextMenuTarget } from '../types'
+import type { DiagramNode, TextNode, Edge, ContextMenuTarget, PortSide } from '../types'
 
 function lum(h: string) {
   const r = parseInt(h.slice(1, 3), 16) / 255
@@ -34,6 +34,7 @@ interface DiagramState {
   multiSel: Set<string>
   cmode: boolean
   csrc: string | null
+  csrcSide: PortSide | null
   editingTextId: string | null
   nc: number
   tc: number
@@ -43,7 +44,7 @@ interface DiagramState {
   // actions
   addBox: (opts?: Partial<DiagramNode> & { parent?: string }) => string
   addText: (opts?: Partial<TextNode>) => string
-  addEdge: (from: string, to: string) => void
+  addEdge: (from: string, to: string, fromSide?: PortSide, toSide?: PortSide) => void
   deleteNode: (id: string) => void
   deleteText: (id: string) => void
   deleteEdge: (idx: number) => void
@@ -58,7 +59,7 @@ interface DiagramState {
   attachChild: (childId: string, parentId: string) => void
   detachNode: (id: string, place?: boolean, ax?: number, ay?: number) => void
   clearAll: () => void
-  startConnect: () => void
+  startConnect: (nodeId?: string, side?: PortSide) => void
   cancelConnect: () => void
   startEditText: (id: string) => void
   finishEditText: (id: string, content?: string) => void
@@ -91,6 +92,7 @@ export const useDiagram = create<DiagramState>((set, get) => ({
   multiSel: new Set(),
   cmode: false,
   csrc: null,
+  csrcSide: null,
   editingTextId: null,
   nc: 0,
   tc: 0,
@@ -154,10 +156,15 @@ export const useDiagram = create<DiagramState>((set, get) => ({
     return id
   },
 
-  addEdge: (from, to) => {
+  addEdge: (from, to, fromSide = 'pr', toSide = 'pl') => {
     const { edges, nodes } = get()
     if (!nodes[from] || !nodes[to]) return
-    set({ edges: [...edges, { from, to, label: '', desc: '', color: '#888780', style: 'solid', arrow: 'end' }] })
+    set({
+      edges: [
+        ...edges,
+        { from, to, fromSide, toSide, label: '', desc: '', color: '#888780', style: 'solid', arrow: 'end', route: 'straight', bend: 0 },
+      ],
+    })
   },
 
   deleteNode: (id) => {
@@ -297,10 +304,11 @@ export const useDiagram = create<DiagramState>((set, get) => ({
     })
   },
 
-  startConnect: () => {
+  startConnect: (nodeId, side = 'pr') => {
     const { selNode } = get()
-    if (!selNode) return
-    set({ cmode: true, csrc: selNode, modeText: 'Click another box to connect · Esc to cancel' })
+    const src = nodeId ?? selNode
+    if (!src) return
+    set({ cmode: true, csrc: src, csrcSide: side, modeText: 'Drag from one port to another port · Esc to cancel' })
   },
 
   cancelConnect: () => {
@@ -308,6 +316,7 @@ export const useDiagram = create<DiagramState>((set, get) => ({
     set({
       cmode: false,
       csrc: null,
+      csrcSide: null,
       modeText: interactionMode === 'move' ? 'Move mode: drag or scroll to pan · Right-click to add' : DEFAULT_MODE,
     })
   },

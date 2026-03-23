@@ -184,7 +184,7 @@ export default function Topbar() {
   return (
     <div className={topbarStyle}>
       <span style={{ fontSize: 13, fontWeight: 500, color: '#888780', padding: '0 6px', marginRight: 4 }}>
-        Diagram
+        Thot Editor
       </span>
       <div className={sepStyle} />
       <div style={{ position: 'relative' }} ref={menuRef}>

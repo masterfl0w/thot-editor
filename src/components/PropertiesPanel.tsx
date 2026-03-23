@@ -388,7 +388,7 @@ export default function PropertiesPanel() {
               </div>
             )}
             <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-              <button className={actionBtnStyle} style={{ marginBottom: 0 }} onClick={startConnect}><IconConnect /> Connect</button>
+              <button className={actionBtnStyle} style={{ marginBottom: 0 }} onClick={() => startConnect()}><IconConnect /> Connect</button>
               <button className={`${actionBtnStyle} ${dangerBtnStyle}`} style={{ marginBottom: 0 }} onClick={() => { deselectAll(); deleteNode(node.id) }}><IconTrashSm /> Delete</button>
             </div>
           </div>
@@ -466,6 +466,21 @@ export default function PropertiesPanel() {
               <input className={inputStyle} value={edge.label} placeholder="Short label"
                 onChange={e => updateEdge(selEdge, { label: e.target.value })} />
             </div>
+            <div style={{ marginBottom: 11 }}>
+              <label className={labelStyle}>Link shape</label>
+              <select className={inputStyle} value={edge.route} onChange={e => updateEdge(selEdge, { route: e.target.value as any })}>
+                <option value="straight">Straight</option>
+                <option value="curve">Curve</option>
+                <option value="angle">Angle</option>
+              </select>
+            </div>
+            {edge.route !== 'straight' && (
+              <div style={{ marginBottom: 11 }}>
+                <label className={labelStyle}>Bend — <span>{edge.bend}</span>px</label>
+                <input type="range" min={-120} max={120} value={edge.bend} style={{ width: '100%' }}
+                  onChange={e => updateEdge(selEdge, { bend: +e.target.value })} />
+              </div>
+            )}
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Description</label>
               <textarea className={inputStyle} value={edge.desc} placeholder="Shown on hover"

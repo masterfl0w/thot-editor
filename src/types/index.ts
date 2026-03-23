@@ -1,3 +1,5 @@
+export type PortSide = 'pt' | 'pb' | 'pl' | 'pr'
+
 export interface DiagramNode {
   id: string
   title: string
@@ -36,11 +38,15 @@ export interface TextNode {
 export interface Edge {
   from: string
   to: string
+  fromSide: PortSide
+  toSide: PortSide
   label: string
   desc: string
   color: string
   style: 'solid' | 'dashed' | 'dotted'
   arrow: 'end' | 'both' | 'none'
+  route: 'straight' | 'curve' | 'angle'
+  bend: number
 }
 
 export type ContextMenuTarget =
