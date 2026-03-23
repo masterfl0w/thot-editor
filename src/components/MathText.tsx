@@ -23,14 +23,25 @@ function parseMathSegments(content: string): Segment[] {
 
   while (i < content.length) {
     const blockStart = content.indexOf('$$', i)
+    const starStart = content.indexOf('**', i)
     const inlineStart = content.indexOf('$', i)
 
     let start = -1
     let kind: 'inline' | 'block' | null = null
 
-    if (blockStart !== -1 && (inlineStart === -1 || blockStart <= inlineStart)) {
+    if (
+      blockStart !== -1 &&
+      (inlineStart === -1 || blockStart <= inlineStart) &&
+      (starStart === -1 || blockStart <= starStart)
+    ) {
       start = blockStart
       kind = 'block'
+    } else if (
+      starStart !== -1 &&
+      (inlineStart === -1 || starStart <= inlineStart)
+    ) {
+      start = starStart
+      kind = 'inline'
     } else if (inlineStart !== -1) {
       start = inlineStart
       kind = 'inline'
@@ -43,16 +54,21 @@ function parseMathSegments(content: string): Segment[] {
 
     if (start > i) segments.push({ type: 'text', value: content.slice(i, start) })
 
-    const delimiter = kind === 'block' ? '$$' : '$'
+    const delimiter = kind === 'block' ? '$$' : content.startsWith('**', start) ? '**' : '$'
     const end = content.indexOf(delimiter, start + delimiter.length)
 
     if (end === -1) {
-      const danglingValue = content.slice(start + delimiter.length)
-      if (danglingValue.trim()) {
-        segments.push({ type: kind, value: danglingValue })
-      } else {
-        segments.push({ type: 'text', value: content.slice(start) })
+      const valueStart = start + delimiter.length
+      const newlineIndex = content.indexOf('\n', valueStart)
+      if (kind === 'inline' && newlineIndex !== -1) {
+        const danglingValue = content.slice(valueStart, newlineIndex)
+        if (danglingValue.trim()) segments.push({ type: 'inline', value: danglingValue })
+        i = newlineIndex
+        continue
       }
+      const danglingValue = content.slice(valueStart)
+      if (danglingValue.trim()) segments.push({ type: kind, value: danglingValue })
+      else segments.push({ type: 'text', value: content.slice(start) })
       break
     }
 

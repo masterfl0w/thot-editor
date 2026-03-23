@@ -32,6 +32,7 @@ interface DiagramState {
   nodes: Record<string, DiagramNode>
   texts: Record<string, TextNode>
   edges: Edge[]
+  sceneClipboard: { nodes: DiagramNode[]; texts: TextNode[]; edges: Edge[] } | null
   theme: 'light' | 'dark'
   viewport: { x: number; y: number }
   pointer: { x: number; y: number } | null
@@ -80,6 +81,8 @@ interface DiagramState {
   setInteractionMode: (mode: 'select' | 'move') => void
   setTheme: (theme: 'light' | 'dark') => void
   toggleTheme: () => void
+  copySelectionToClipboard: () => boolean
+  pasteClipboard: (at?: { x: number; y: number } | null) => boolean
   setViewport: (viewport: { x: number; y: number }) => void
   setPointer: (pointer: { x: number; y: number } | null) => void
   setZoom: (zoom: number) => void
@@ -97,6 +100,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   nodes: {},
   texts: {},
   edges: [],
+  sceneClipboard: null,
   theme: DEFAULT_THEME,
   viewport: { x: 0, y: 0 },
   pointer: null,
@@ -383,6 +387,136 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
 
   toggleTheme: () => set(state => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
 
+  copySelectionToClipboard: () => {
+    const { nodes, texts, edges, multiSel, selNode, selText } = get()
+    const rootNodeIds = new Set<string>()
+    const textIds = new Set<string>()
+
+    const includeNodeTree = (id: string) => {
+      const node = nodes[id]
+      if (!node || rootNodeIds.has(id)) return
+      rootNodeIds.add(id)
+      node.children.forEach(includeNodeTree)
+    }
+
+    if (multiSel.size > 0) {
+      multiSel.forEach(id => {
+        if (nodes[id]) includeNodeTree(id)
+        if (texts[id]) textIds.add(id)
+      })
+    } else {
+      if (selNode) includeNodeTree(selNode)
+      if (selText) textIds.add(selText)
+    }
+
+    if (rootNodeIds.size === 0 && textIds.size === 0) return false
+
+    const nodeList = [...rootNodeIds].map(id => ({ ...nodes[id], children: [...nodes[id].children] }))
+    const textList = [...textIds].map(id => ({ ...texts[id] }))
+    const nodeIdSet = new Set(rootNodeIds)
+    const edgeList = edges
+      .filter(edge => nodeIdSet.has(edge.from) && nodeIdSet.has(edge.to))
+      .map(edge => ({ ...edge }))
+
+    set({
+      sceneClipboard: { nodes: nodeList, texts: textList, edges: edgeList },
+      modeText: `Copied ${nodeList.length + textList.length} element${nodeList.length + textList.length > 1 ? 's' : ''}`,
+    })
+    return true
+  },
+
+  pasteClipboard: (at = null) => {
+    const { sceneClipboard, nc, tc, nodes, texts, edges } = get()
+    if (!sceneClipboard || (sceneClipboard.nodes.length === 0 && sceneClipboard.texts.length === 0)) return false
+
+    const includedParents = new Set(sceneClipboard.nodes.map(node => node.id))
+    const topLevelNodes = sceneClipboard.nodes.filter(node => !node.parent || !includedParents.has(node.parent))
+    const positioned = [
+      ...topLevelNodes.map(node => ({ x: node.x, y: node.y })),
+      ...sceneClipboard.texts.map(text => ({ x: text.x, y: text.y })),
+    ]
+    const minX = positioned.length > 0 ? Math.min(...positioned.map(item => item.x)) : 0
+    const minY = positioned.length > 0 ? Math.min(...positioned.map(item => item.y)) : 0
+    const offsetX = at ? at.x - minX + 24 : 32
+    const offsetY = at ? at.y - minY + 24 : 32
+
+    let nextNc = nc
+    let nextTc = tc
+    const nodeIdMap = new Map<string, string>()
+    const textIdMap = new Map<string, string>()
+    const newNodes = { ...nodes }
+    const newTexts = { ...texts }
+
+    sceneClipboard.nodes.forEach(node => {
+      nextNc += 1
+      nodeIdMap.set(node.id, `n${nextNc}`)
+    })
+
+    sceneClipboard.texts.forEach(text => {
+      nextTc += 1
+      textIdMap.set(text.id, `t${nextTc}`)
+    })
+
+    sceneClipboard.nodes.forEach(node => {
+      const newId = nodeIdMap.get(node.id)!
+      const hasCopiedParent = !!node.parent && nodeIdMap.has(node.parent)
+      const parentId = hasCopiedParent && node.parent ? nodeIdMap.get(node.parent) ?? null : null
+      newNodes[newId] = {
+        ...node,
+        id: newId,
+        parent: parentId,
+        children: node.children.map(childId => nodeIdMap.get(childId)!).filter(Boolean),
+        x: hasCopiedParent ? node.x : node.x + offsetX,
+        y: hasCopiedParent ? node.y : node.y + offsetY,
+      }
+    })
+
+    sceneClipboard.texts.forEach(text => {
+      const newId = textIdMap.get(text.id)!
+      newTexts[newId] = {
+        ...text,
+        id: newId,
+        x: text.x + offsetX,
+        y: text.y + offsetY,
+      }
+    })
+
+    const newEdges = [
+      ...edges,
+      ...sceneClipboard.edges.map(edge => ({
+        ...edge,
+        from: nodeIdMap.get(edge.from) ?? edge.from,
+        to: nodeIdMap.get(edge.to) ?? edge.to,
+      })),
+    ]
+
+    const pastedIds = new Set<string>([
+      ...topLevelNodes.map(node => nodeIdMap.get(node.id)!).filter(Boolean),
+      ...sceneClipboard.texts.map(text => textIdMap.get(text.id)!).filter(Boolean),
+    ])
+
+    set({
+      nodes: newNodes,
+      texts: newTexts,
+      edges: newEdges,
+      nc: nextNc,
+      tc: nextTc,
+      selNode: null,
+      selText: null,
+      selEdge: null,
+      multiSel: pastedIds.size > 1 ? pastedIds : new Set(),
+      modeText: `Pasted ${pastedIds.size} element${pastedIds.size > 1 ? 's' : ''}`,
+    })
+
+    if (pastedIds.size === 1) {
+      const [id] = [...pastedIds]
+      if (newNodes[id]) set({ selNode: id, modeText: 'Drag outside parent to extract · Drag onto another box to nest' })
+      else if (newTexts[id]) set({ selText: id, modeText: 'Double-click text to edit inline' })
+    }
+
+    return true
+  },
+
   setViewport: (viewport) => set({ viewport }),
 
   setPointer: (pointer) => set({ pointer }),
@@ -425,6 +559,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
     state.csrc = null
     state.csrcSide = null
     state.editingTextId = null
+    state.sceneClipboard = null
     state.ctxTarget = null
     state.modeText = state.interactionMode === 'move' ? MOVE_MODE : DEFAULT_MODE
   },

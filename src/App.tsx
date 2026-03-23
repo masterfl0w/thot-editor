@@ -20,6 +20,8 @@ export default function App() {
     selectNode,
     selectText,
     startEditText,
+    copySelectionToClipboard,
+    pasteClipboard,
     viewport,
     pointer,
     zoom,
@@ -55,6 +57,21 @@ export default function App() {
       }
       const tag = (document.activeElement as HTMLElement)?.tagName
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return
+      if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+        const key = e.key.toLowerCase()
+        if (key === 'c') {
+          if (multiSel.size > 0 || selNode || selText) {
+            e.preventDefault()
+            copySelectionToClipboard()
+          }
+          return
+        }
+        if (key === 'v') {
+          e.preventDefault()
+          pasteClipboard(pointer ?? getFallbackPoint())
+          return
+        }
+      }
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (e.key === 'Escape') {
         if (cmode) cancelConnect()
@@ -84,7 +101,7 @@ export default function App() {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [editingTextId, cmode, selNode, selText, selEdge, multiSel, viewport.x, viewport.y, pointer, zoom])
+  }, [editingTextId, cmode, selNode, selText, selEdge, multiSel, viewport.x, viewport.y, pointer, zoom, copySelectionToClipboard, pasteClipboard])
 
   return (
     <div className={css({
