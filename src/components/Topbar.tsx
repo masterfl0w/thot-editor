@@ -62,6 +62,20 @@ const IconMoon = () => (
     <path d="M8.9 2.1a4.5 4.5 0 104 6.1A4.9 4.9 0 018.9 2.1z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 )
+const IconSettings = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <path d="M6.5 4.6a1.9 1.9 0 100 3.8 1.9 1.9 0 000-3.8z" stroke="currentColor" strokeWidth="1.1"/>
+    <path d="M10.4 7.1v-1.2l-1-.3a3.3 3.3 0 00-.3-.7l.5-.9-.8-.8-.9.5a3.3 3.3 0 00-.7-.3l-.3-1H5.7l-.3 1a3.3 3.3 0 00-.7.3l-.9-.5-.8.8.5.9a3.3 3.3 0 00-.3.7l-1 .3v1.2l1 .3c.1.2.2.5.3.7l-.5.9.8.8.9-.5c.2.1.5.2.7.3l.3 1h1.2l.3-1c.2-.1.5-.2.7-.3l.9.5.8-.8-.5-.9c.1-.2.2-.5.3-.7l1-.3z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+const IconGrid = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <rect x="2" y="2" width="3" height="3" rx="0.6" stroke="currentColor" strokeWidth="1"/>
+    <rect x="8" y="2" width="3" height="3" rx="0.6" stroke="currentColor" strokeWidth="1"/>
+    <rect x="2" y="8" width="3" height="3" rx="0.6" stroke="currentColor" strokeWidth="1"/>
+    <rect x="8" y="8" width="3" height="3" rx="0.6" stroke="currentColor" strokeWidth="1"/>
+  </svg>
+)
 
 const topbarStyle = css({
   height: '48px',
@@ -159,12 +173,19 @@ const menuSepStyle = css({
 
 export default function Topbar() {
   const [editOpen, setEditOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-  const { addBox, addText, clearAll, selectNode, selectText, startEditText, interactionMode, setInteractionMode, zoom, setZoom, theme, toggleTheme } = useDiagram()
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const editRef = useRef<HTMLDivElement>(null)
+  const settingsRef = useRef<HTMLDivElement>(null)
+  const {
+    addBox, addText, clearAll, selectNode, selectText, startEditText,
+    interactionMode, setInteractionMode, zoom, setZoom,
+    theme, setTheme, layoutMode, setLayoutMode,
+  } = useDiagram()
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setEditOpen(false)
+      if (!editRef.current?.contains(e.target as Node)) setEditOpen(false)
+      if (!settingsRef.current?.contains(e.target as Node)) setSettingsOpen(false)
     }
     document.addEventListener('click', onClick)
     return () => document.removeEventListener('click', onClick)
@@ -198,8 +219,8 @@ export default function Topbar() {
         Thot Editor
       </span>
       <div className={sepStyle} />
-      <div style={{ position: 'relative' }} ref={menuRef}>
-        <button className={btnStyle} onClick={() => setEditOpen(o => !o)}>
+      <div style={{ position: 'relative' }} ref={editRef}>
+        <button className={btnStyle} onClick={() => { setEditOpen(o => !o); setSettingsOpen(false) }}>
           <IconEdit /> Edit <IconChevron />
         </button>
         {editOpen && (
@@ -227,10 +248,30 @@ export default function Topbar() {
         <IconHand /> Move
       </button>
       <div className={sepStyle} />
-      <button className={btnStyle} onClick={toggleTheme}>
-        {theme === 'dark' ? <IconSun /> : <IconMoon />}
-        {theme === 'dark' ? 'Light' : 'Dark'}
-      </button>
+      <div style={{ position: 'relative' }} ref={settingsRef}>
+        <button className={btnStyle} onClick={() => { setSettingsOpen(o => !o); setEditOpen(false) }}>
+          <IconSettings /> Settings <IconChevron />
+        </button>
+        {settingsOpen && (
+          <div className={menuStyle}>
+            <div style={{ padding: '6px 10px 4px', fontSize: 11, color: '#888780', fontWeight: 600 }}>Theme</div>
+            <div className={menuItemStyle} onClick={() => { setTheme('light'); setSettingsOpen(false) }}>
+              <IconSun /> Light {theme === 'light' ? '•' : ''}
+            </div>
+            <div className={menuItemStyle} onClick={() => { setTheme('dark'); setSettingsOpen(false) }}>
+              <IconMoon /> Dark {theme === 'dark' ? '•' : ''}
+            </div>
+            <div className={menuSepStyle} />
+            <div style={{ padding: '6px 10px 4px', fontSize: 11, color: '#888780', fontWeight: 600 }}>Workspace mode</div>
+            <div className={menuItemStyle} onClick={() => { setLayoutMode('free'); setSettingsOpen(false) }}>
+              <IconHand /> Free {layoutMode === 'free' ? '•' : ''}
+            </div>
+            <div className={menuItemStyle} onClick={() => { setLayoutMode('static'); setSettingsOpen(false) }}>
+              <IconGrid /> Static {layoutMode === 'static' ? '•' : ''}
+            </div>
+          </div>
+        )}
+      </div>
       <div className={sepStyle} />
       <button className={btnStyle} onClick={() => updateZoom(-0.1)}><IconMinus /></button>
       <button className={btnStyle} onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>

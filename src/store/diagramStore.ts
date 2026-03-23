@@ -28,12 +28,17 @@ export function adjHex(hex: string, amt: number): string {
   ).join('')
 }
 
+function snap(value: number) {
+  return Math.round(value / SNAP_STEP) * SNAP_STEP
+}
+
 interface DiagramState {
   nodes: Record<string, DiagramNode>
   texts: Record<string, TextNode>
   edges: Edge[]
   sceneClipboard: { nodes: DiagramNode[]; texts: TextNode[]; edges: Edge[] } | null
   theme: 'light' | 'dark'
+  layoutMode: 'free' | 'static'
   viewport: { x: number; y: number }
   pointer: { x: number; y: number } | null
   zoom: number
@@ -81,6 +86,7 @@ interface DiagramState {
   setInteractionMode: (mode: 'select' | 'move') => void
   setTheme: (theme: 'light' | 'dark') => void
   toggleTheme: () => void
+  setLayoutMode: (layoutMode: 'free' | 'static') => void
   copySelectionToClipboard: () => boolean
   pasteClipboard: (at?: { x: number; y: number } | null) => boolean
   setViewport: (viewport: { x: number; y: number }) => void
@@ -93,6 +99,7 @@ interface DiagramState {
 const DEFAULT_MODE = 'Select mode: drag to multi-select · Shift-click to add to selection · Right-click to add'
 const MOVE_MODE = 'Move mode: drag or scroll to pan · Right-click to add'
 const STORAGE_KEY = 'thot-editor-workspace'
+const SNAP_STEP = 24
 const DEFAULT_THEME: 'light' | 'dark' =
   typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 
@@ -102,6 +109,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   edges: [],
   sceneClipboard: null,
   theme: DEFAULT_THEME,
+  layoutMode: 'free',
   viewport: { x: 0, y: 0 },
   pointer: null,
   zoom: 1,
@@ -120,11 +128,13 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   modeText: DEFAULT_MODE,
 
   addBox: (opts = {}) => {
-    const { nodes, nc } = get()
+    const { nodes, nc, layoutMode } = get()
     const newNc = nc + 1
     const id = 'n' + newNc
     const bg = opts.bg ?? '#e8e6ff'
     const fg = opts.fg ?? autoFg(bg)
+    const x = opts.x ?? (80 + Math.random() * 240)
+    const y = opts.y ?? (60 + Math.random() * 180)
     const node: DiagramNode = {
       id,
       title: opts.title ?? 'New box',
@@ -139,8 +149,8 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
       underline: opts.underline ?? false,
       strike: opts.strike ?? false,
       radius: opts.radius ?? 10,
-      x: opts.x ?? (80 + Math.random() * 240),
-      y: opts.y ?? (60 + Math.random() * 180),
+      x: layoutMode === 'static' ? snap(x) : x,
+      y: layoutMode === 'static' ? snap(y) : y,
       parent: null,
       children: [],
     }
@@ -155,14 +165,16 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   },
 
   addText: (opts = {}) => {
-    const { texts, tc, theme } = get()
+    const { texts, tc, theme, layoutMode } = get()
     const newTc = tc + 1
     const id = 't' + newTc
+    const x = opts.x ?? 100
+    const y = opts.y ?? 80
     const text: TextNode = {
       id,
       content: opts.content ?? 'Text',
-      x: opts.x ?? 100,
-      y: opts.y ?? 80,
+      x: layoutMode === 'static' ? snap(x) : x,
+      y: layoutMode === 'static' ? snap(y) : y,
       size: opts.size ?? 16,
       color: opts.color ?? (theme === 'dark' ? '#ffffff' : '#1a1a18'),
       family: opts.family ?? 'inherit',
@@ -387,6 +399,11 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
 
   toggleTheme: () => set(state => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
 
+  setLayoutMode: (layoutMode) => set({
+    layoutMode,
+    modeText: layoutMode === 'static' ? 'Static mode: nodes snap to grid positions' : DEFAULT_MODE,
+  }),
+
   copySelectionToClipboard: () => {
     const { nodes, texts, edges, multiSel, selNode, selText } = get()
     const rootNodeIds = new Set<string>()
@@ -426,7 +443,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   },
 
   pasteClipboard: (at = null) => {
-    const { sceneClipboard, nc, tc, nodes, texts, edges } = get()
+    const { sceneClipboard, nc, tc, nodes, texts, edges, layoutMode } = get()
     if (!sceneClipboard || (sceneClipboard.nodes.length === 0 && sceneClipboard.texts.length === 0)) return false
 
     const includedParents = new Set(sceneClipboard.nodes.map(node => node.id))
@@ -437,8 +454,10 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
     ]
     const minX = positioned.length > 0 ? Math.min(...positioned.map(item => item.x)) : 0
     const minY = positioned.length > 0 ? Math.min(...positioned.map(item => item.y)) : 0
-    const offsetX = at ? at.x - minX + 24 : 32
-    const offsetY = at ? at.y - minY + 24 : 32
+    const targetX = at ? at.x : minX + 32
+    const targetY = at ? at.y : minY + 32
+    const offsetX = (layoutMode === 'static' ? snap(targetX) : targetX) - minX + 24
+    const offsetY = (layoutMode === 'static' ? snap(targetY) : targetY) - minY + 24
 
     let nextNc = nc
     let nextTc = tc
@@ -524,15 +543,33 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
   setZoom: (zoom) => set({ zoom }),
 
   moveNode: (id, x, y) => {
-    const { nodes } = get()
+    const { nodes, layoutMode } = get()
     if (!nodes[id]) return
-    set({ nodes: { ...nodes, [id]: { ...nodes[id], x, y } } })
+    set({
+      nodes: {
+        ...nodes,
+        [id]: {
+          ...nodes[id],
+          x: layoutMode === 'static' ? snap(x) : x,
+          y: layoutMode === 'static' ? snap(y) : y,
+        },
+      },
+    })
   },
 
   moveText: (id, x, y) => {
-    const { texts } = get()
+    const { texts, layoutMode } = get()
     if (!texts[id]) return
-    set({ texts: { ...texts, [id]: { ...texts[id], x, y } } })
+    set({
+      texts: {
+        ...texts,
+        [id]: {
+          ...texts[id],
+          x: layoutMode === 'static' ? snap(x) : x,
+          y: layoutMode === 'static' ? snap(y) : y,
+        },
+      },
+    })
   },
 }), {
   name: STORAGE_KEY,
@@ -542,6 +579,7 @@ export const useDiagram = create<DiagramState>()(persist((set, get) => ({
     texts: state.texts,
     edges: state.edges,
     theme: state.theme,
+    layoutMode: state.layoutMode,
     viewport: state.viewport,
     zoom: state.zoom,
     interactionMode: state.interactionMode,
