@@ -146,7 +146,7 @@ export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HT
           const lw = edge.label ? edge.label.length * 6.5 + 14 : 0
 
           return (
-            <g key={idx} className="eg">
+            <g key={idx} className="eg" data-edge-index={idx}>
               {isSel && (
                 <path d={shape.path}
                   stroke="#6c6cff" strokeWidth="8" strokeOpacity="0.25" fill="none" />

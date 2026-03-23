@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useDiagram, adjHex } from '../store/diagramStore'
+import { copySelectionAsPng, copySelectionAsSvg } from '../utils/selectionExport'
 
 const IconBox = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -36,6 +37,12 @@ const IconTrash = () => (
     <path d="M2 3.5h9M4.5 3.5V3h4v.5M5.5 6v3.5M7.5 6v3.5M2.5 3.5l.75 6.5a.9.9 0 00.9.75h4.7a.9.9 0 00.9-.75l.75-6.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
   </svg>
 )
+const IconCopy = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <rect x="4" y="2" width="7" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.1"/>
+    <path d="M8.5 10.5H3.8A1.8 1.8 0 012 8.7V4" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+  </svg>
+)
 
 const isDark = () => window.matchMedia('(prefers-color-scheme: dark)').matches
 
@@ -69,7 +76,8 @@ const sepStyle: React.CSSProperties = {
 
 export default function ContextMenu() {
   const { ctxTarget, setCtxTarget, addBox, addText, nodes, selectNode, selectText,
-    startConnect, detachNode, deleteNode, deleteText, deselectAll, clearAll, startEditText } = useDiagram()
+    startConnect, detachNode, deleteNode, deleteText, deselectAll, clearAll, startEditText,
+    multiSel, selNode, selText, selEdge, texts, edges, setModeText } = useDiagram()
 
   const ref = useRef<HTMLDivElement>(null)
 
@@ -87,13 +95,26 @@ export default function ContextMenu() {
   const y = Math.min(ctxTarget.y, window.innerHeight - 220)
 
   const close = () => setCtxTarget(null)
+  const hasSelection = multiSel.size > 0 || !!selNode || !!selText || selEdge !== null
 
-  const Item = ({ icon, label, danger, onClick }: { icon: React.ReactNode, label: string, danger?: boolean, onClick: () => void }) => (
+  const copySelection = async (format: 'png' | 'svg') => {
+    try {
+      const state = { nodes, texts, edges, selNode, selText, selEdge, multiSel }
+      if (format === 'png') await copySelectionAsPng(state)
+      else await copySelectionAsSvg(state)
+      setModeText(`Copied selection as ${format.toUpperCase()}`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to copy selection'
+      setModeText(message)
+    }
+  }
+
+  const Item = ({ icon, label, danger, onClick }: { icon: React.ReactNode, label: string, danger?: boolean, onClick: () => void | Promise<void> }) => (
     <div
       style={{ ...itemStyle, color: danger ? (isDark() ? '#e57373' : '#c0392b') : itemStyle.color }}
       onMouseEnter={e => (e.currentTarget.style.background = isDark() ? '#3d3d3a' : '#f5f3ee')}
       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-      onClick={() => { onClick(); close() }}
+      onClick={async () => { await onClick(); close() }}
     >
       {icon} {label}
     </div>
@@ -113,6 +134,13 @@ export default function ContextMenu() {
             setTimeout(() => startEditText(id), 50)
           }} />
           <div style={sepStyle} />
+          {hasSelection && (
+            <>
+              <Item icon={<IconCopy />} label="Copy selection as PNG" onClick={() => copySelection('png')} />
+              <Item icon={<IconCopy />} label="Copy selection as SVG" onClick={() => copySelection('svg')} />
+              <div style={sepStyle} />
+            </>
+          )}
           <Item icon={<IconTrash />} label="Clear selection" onClick={() => deselectAll()} />
           <Item icon={<IconTrash />} label="Clear all" danger onClick={() => clearAll()} />
         </>
@@ -139,6 +167,9 @@ export default function ContextMenu() {
               <Item icon={<IconExtract />} label="Extract from parent" onClick={() => detachNode(ctxTarget.id, true)} />
             )}
             <div style={sepStyle} />
+            <Item icon={<IconCopy />} label="Copy selection as PNG" onClick={() => copySelection('png')} />
+            <Item icon={<IconCopy />} label="Copy selection as SVG" onClick={() => copySelection('svg')} />
+            <div style={sepStyle} />
             <Item icon={<IconTrash />} label="Clear selection" onClick={() => deselectAll()} />
             <Item icon={<IconTrash />} label="Delete" danger onClick={() => {
               deselectAll()
@@ -150,6 +181,9 @@ export default function ContextMenu() {
 
       {ctxTarget.type === 'text' && (
         <>
+          <div style={sepStyle} />
+          <Item icon={<IconCopy />} label="Copy selection as PNG" onClick={() => copySelection('png')} />
+          <Item icon={<IconCopy />} label="Copy selection as SVG" onClick={() => copySelection('svg')} />
           <div style={sepStyle} />
           <Item icon={<IconTrash />} label="Clear selection" onClick={() => deselectAll()} />
           <Item icon={<IconTrash />} label="Delete" danger onClick={() => {

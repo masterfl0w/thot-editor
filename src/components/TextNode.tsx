@@ -128,6 +128,7 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
 
   const badge = isMultiSel && !isEditing ? (
     <div
+      className="selection-badge"
       style={{
         position: 'absolute',
         top: -10,

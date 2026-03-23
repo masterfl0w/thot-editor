@@ -211,6 +211,7 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
       : 'none'
   const selectionBadge = isMultiSel ? (
     <div
+      className="selection-badge"
       style={{
         position: 'absolute',
         top: -10,
