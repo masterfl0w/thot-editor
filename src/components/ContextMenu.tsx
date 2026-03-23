@@ -69,7 +69,7 @@ const sepStyle: React.CSSProperties = {
 
 export default function ContextMenu() {
   const { ctxTarget, setCtxTarget, addBox, addText, nodes, selectNode, selectText,
-    startConnect, detachNode, deleteNode, deleteText, deselectAll, startEditText } = useDiagram()
+    startConnect, detachNode, deleteNode, deleteText, deselectAll, clearAll, startEditText } = useDiagram()
 
   const ref = useRef<HTMLDivElement>(null)
 
@@ -112,6 +112,9 @@ export default function ContextMenu() {
             selectText(id)
             setTimeout(() => startEditText(id), 50)
           }} />
+          <div style={sepStyle} />
+          <Item icon={<IconTrash />} label="Clear selection" onClick={() => deselectAll()} />
+          <Item icon={<IconTrash />} label="Clear all" danger onClick={() => clearAll()} />
         </>
       )}
 
@@ -136,6 +139,7 @@ export default function ContextMenu() {
               <Item icon={<IconExtract />} label="Extract from parent" onClick={() => detachNode(ctxTarget.id, true)} />
             )}
             <div style={sepStyle} />
+            <Item icon={<IconTrash />} label="Clear selection" onClick={() => deselectAll()} />
             <Item icon={<IconTrash />} label="Delete" danger onClick={() => {
               deselectAll()
               deleteNode(ctxTarget.id)
@@ -147,6 +151,7 @@ export default function ContextMenu() {
       {ctxTarget.type === 'text' && (
         <>
           <div style={sepStyle} />
+          <Item icon={<IconTrash />} label="Clear selection" onClick={() => deselectAll()} />
           <Item icon={<IconTrash />} label="Delete" danger onClick={() => {
             deselectAll()
             deleteText(ctxTarget.id)

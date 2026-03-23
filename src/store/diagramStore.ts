@@ -24,6 +24,9 @@ interface DiagramState {
   nodes: Record<string, DiagramNode>
   texts: Record<string, TextNode>
   edges: Edge[]
+  viewport: { x: number; y: number }
+  zoom: number
+  interactionMode: 'select' | 'move'
   selNode: string | null
   selText: string | null
   selEdge: number | null
@@ -49,6 +52,7 @@ interface DiagramState {
   selectNode: (id: string) => void
   selectText: (id: string) => void
   selectEdge: (idx: number) => void
+  toggleMultiSel: (id: string) => void
   deselectAll: () => void
   attachChild: (childId: string, parentId: string) => void
   detachNode: (id: string, place?: boolean, ax?: number, ay?: number) => void
@@ -62,16 +66,22 @@ interface DiagramState {
   deleteMultiSel: () => void
   setCtxTarget: (t: ContextMenuTarget) => void
   setModeText: (t: string) => void
+  setInteractionMode: (mode: 'select' | 'move') => void
+  setViewport: (viewport: { x: number; y: number }) => void
+  setZoom: (zoom: number) => void
   moveNode: (id: string, x: number, y: number) => void
   moveText: (id: string, x: number, y: number) => void
 }
 
-const DEFAULT_MODE = 'Drag canvas to multi-select · Right-click to add'
+const DEFAULT_MODE = 'Select mode: drag to multi-select · Shift-click to add to selection · Right-click to add'
 
 export const useDiagram = create<DiagramState>((set, get) => ({
   nodes: {},
   texts: {},
   edges: [],
+  viewport: { x: 0, y: 0 },
+  zoom: 1,
+  interactionMode: 'select',
   selNode: null,
   selText: null,
   selEdge: null,
@@ -205,8 +215,33 @@ export const useDiagram = create<DiagramState>((set, get) => ({
     set({ selEdge: idx, selNode: null, selText: null, multiSel: new Set(), modeText: 'Link selected — edit or Delete to remove' })
   },
 
+  toggleMultiSel: (id) => {
+    const { multiSel, selNode, selText, nodes, texts } = get()
+    if (!nodes[id] && !texts[id]) return
+    const next = new Set(multiSel)
+    if (selNode) next.add(selNode)
+    if (selText) next.add(selText)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    set({
+      multiSel: next,
+      selNode: null,
+      selText: null,
+      selEdge: null,
+      modeText: next.size > 0 ? `${next.size} elements selected` : DEFAULT_MODE,
+    })
+  },
+
   deselectAll: () => {
-    set({ selNode: null, selText: null, selEdge: null, multiSel: new Set(), editingTextId: null, modeText: DEFAULT_MODE })
+    const { interactionMode } = get()
+    set({
+      selNode: null,
+      selText: null,
+      selEdge: null,
+      multiSel: new Set(),
+      editingTextId: null,
+      modeText: interactionMode === 'move' ? 'Move mode: drag or scroll to pan · Right-click to add' : DEFAULT_MODE,
+    })
   },
 
   attachChild: (childId, parentId) => {
@@ -239,7 +274,18 @@ export const useDiagram = create<DiagramState>((set, get) => ({
   },
 
   clearAll: () => {
-    set({ nodes: {}, texts: {}, edges: [], selNode: null, selText: null, selEdge: null, multiSel: new Set(), editingTextId: null, modeText: DEFAULT_MODE })
+    const { interactionMode } = get()
+    set({
+      nodes: {},
+      texts: {},
+      edges: [],
+      selNode: null,
+      selText: null,
+      selEdge: null,
+      multiSel: new Set(),
+      editingTextId: null,
+      modeText: interactionMode === 'move' ? 'Move mode: drag or scroll to pan · Right-click to add' : DEFAULT_MODE,
+    })
   },
 
   startConnect: () => {
@@ -249,7 +295,12 @@ export const useDiagram = create<DiagramState>((set, get) => ({
   },
 
   cancelConnect: () => {
-    set({ cmode: false, csrc: null, modeText: DEFAULT_MODE })
+    const { interactionMode } = get()
+    set({
+      cmode: false,
+      csrc: null,
+      modeText: interactionMode === 'move' ? 'Move mode: drag or scroll to pan · Right-click to add' : DEFAULT_MODE,
+    })
   },
 
   startEditText: (id) => {
@@ -257,14 +308,14 @@ export const useDiagram = create<DiagramState>((set, get) => ({
   },
 
   finishEditText: (id, content) => {
-    const { texts } = get()
+    const { texts, interactionMode } = get()
     if (!texts[id]) return
     const patch: Partial<TextNode> = {}
     if (content !== undefined) patch.content = content
     set({
       texts: { ...texts, [id]: { ...texts[id], ...patch } },
       editingTextId: null,
-      modeText: DEFAULT_MODE,
+      modeText: interactionMode === 'move' ? 'Move mode: drag or scroll to pan · Right-click to add' : DEFAULT_MODE,
     })
   },
 
@@ -285,6 +336,17 @@ export const useDiagram = create<DiagramState>((set, get) => ({
   setCtxTarget: (t) => set({ ctxTarget: t }),
 
   setModeText: (t) => set({ modeText: t }),
+
+  setInteractionMode: (interactionMode) => set({
+    interactionMode,
+    modeText: interactionMode === 'move'
+      ? 'Move mode: drag or scroll to pan · Right-click to add'
+      : DEFAULT_MODE,
+  }),
+
+  setViewport: (viewport) => set({ viewport }),
+
+  setZoom: (zoom) => set({ zoom }),
 
   moveNode: (id, x, y) => {
     const { nodes } = get()

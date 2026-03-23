@@ -8,6 +8,7 @@ function useGrid(
   canvasRef: React.RefObject<HTMLDivElement | null>,
   gridRef: React.RefObject<HTMLCanvasElement | null>,
   viewport: { x: number; y: number },
+  zoom: number,
 ) {
   const draw = useCallback(() => {
     const gc = gridRef.current?.getContext('2d')
@@ -17,16 +18,16 @@ function useGrid(
     gridRef.current!.width = W
     gridRef.current!.height = H
     gc.clearRect(0, 0, W, H)
-    const step = 24
+    const step = 24 * zoom
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
     gc.fillStyle = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
-    const startX = ((-viewport.x % step) + step) % step
-    const startY = ((-viewport.y % step) + step) % step
+    const startX = ((-(viewport.x * zoom) % step) + step) % step
+    const startY = ((-(viewport.y * zoom) % step) + step) % step
     for (let x = startX; x < W; x += step)
       for (let y = startY; y < H; y += step) {
         gc.beginPath(); gc.arc(x, y, 1, 0, Math.PI * 2); gc.fill()
       }
-  }, [canvasRef, gridRef, viewport.x, viewport.y])
+  }, [canvasRef, gridRef, viewport.x, viewport.y, zoom])
 
   useEffect(() => {
     draw()
@@ -40,14 +41,29 @@ function useGrid(
 }
 
 export default function Canvas() {
-  const { nodes, texts, modeText, cmode, cancelConnect, editingTextId, finishEditText,
-    setCtxTarget, setMultiSel, clearMultiSel, deselectAll } = useDiagram()
+  const {
+    nodes,
+    texts,
+    viewport,
+    zoom,
+    interactionMode,
+    modeText,
+    cmode,
+    cancelConnect,
+    editingTextId,
+    finishEditText,
+    setCtxTarget,
+    setMultiSel,
+    clearMultiSel,
+    deselectAll,
+    setViewport,
+    setZoom,
+  } = useDiagram()
 
   const cwRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLCanvasElement>(null)
-  const [viewport, setViewport] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
-  useGrid(cwRef, gridRef, viewport)
+  useGrid(cwRef, gridRef, viewport, zoom)
 
   // Lasso
   const lassoRef = useRef({ active: false, x0: 0, y0: 0 })
@@ -67,7 +83,7 @@ export default function Canvas() {
 
     const wr = cwRef.current!.getBoundingClientRect()
     const x0 = e.clientX - wr.left, y0 = e.clientY - wr.top
-    if (e.shiftKey) {
+    if (interactionMode === 'select') {
       lassoRef.current = { active: true, x0, y0 }
       setLassoRect({ x: x0, y: y0, w: 0, h: 0 })
       deselectAll()
@@ -109,7 +125,7 @@ export default function Canvas() {
       const dx = me.clientX - panRef.current.startX
       const dy = me.clientY - panRef.current.startY
       if (!panRef.current.moved && Math.sqrt(dx * dx + dy * dy) >= 3) panRef.current.moved = true
-      setViewport({ x: panRef.current.vx - dx, y: panRef.current.vy - dy })
+      setViewport({ x: panRef.current.vx - dx / zoom, y: panRef.current.vy - dy / zoom })
     }
 
     const onUp = () => {
@@ -140,8 +156,8 @@ export default function Canvas() {
         type: 'canvas',
         x: e.clientX,
         y: e.clientY,
-        wx: e.clientX - wr.left + viewport.x,
-        wy: e.clientY - wr.top + viewport.y,
+        wx: viewport.x + (e.clientX - wr.left) / zoom,
+        wy: viewport.y + (e.clientY - wr.top) / zoom,
       })
     }
   }
@@ -149,7 +165,23 @@ export default function Canvas() {
   const onWheel = (e: React.WheelEvent) => {
     if (!e.deltaX && !e.deltaY) return
     e.preventDefault()
-    setViewport(v => ({ x: v.x + e.deltaX, y: v.y + e.deltaY }))
+    const wr = cwRef.current?.getBoundingClientRect()
+    if (!wr) return
+    if (e.ctrlKey || e.metaKey) {
+      const px = e.clientX - wr.left
+      const py = e.clientY - wr.top
+      const worldX = viewport.x + px / zoom
+      const worldY = viewport.y + py / zoom
+      const factor = e.deltaY > 0 ? 0.9 : 1.1
+      const nextZoom = Math.max(0.4, Math.min(2.5, Number((zoom * factor).toFixed(3))))
+      setZoom(nextZoom)
+      setViewport({
+        x: worldX - px / nextZoom,
+        y: worldY - py / nextZoom,
+      })
+      return
+    }
+    setViewport({ x: viewport.x + e.deltaX / zoom, y: viewport.y + e.deltaY / zoom })
   }
 
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -157,7 +189,13 @@ export default function Canvas() {
   return (
     <div
       ref={cwRef}
-      style={{ flex: 1, position: 'relative', overflow: 'hidden', cursor: isPanning ? 'grabbing' : 'default', background: isDark ? '#1a1a18' : '#f5f3ee' }}
+      style={{
+        flex: 1,
+        position: 'relative',
+        overflow: 'hidden',
+        cursor: isPanning ? 'grabbing' : interactionMode === 'move' ? 'grab' : 'crosshair',
+        background: isDark ? '#1a1a18' : '#f5f3ee',
+      }}
       onMouseDown={onCanvasMouseDown}
       onContextMenu={onContextMenu}
       onWheel={onWheel}
@@ -170,7 +208,7 @@ export default function Canvas() {
         style={{
           position: 'absolute',
           inset: 0,
-          transform: `translate(${-viewport.x}px, ${-viewport.y}px)`,
+          transform: `translate(${-viewport.x * zoom}px, ${-viewport.y * zoom}px) scale(${zoom})`,
           transformOrigin: 'top left',
         }}
       >
@@ -181,12 +219,12 @@ export default function Canvas() {
 
         {/* Nodes */}
         {Object.values(nodes).filter(n => !n.parent).map(n => (
-          <DiagramNode key={n.id} node={n} canvasRef={cwRef} viewport={viewport} />
+          <DiagramNode key={n.id} node={n} canvasRef={cwRef} viewport={viewport} zoom={zoom} />
         ))}
 
         {/* Text nodes */}
         {Object.values(texts).map(t => (
-          <TextNode key={t.id} text={t} canvasRef={cwRef} viewport={viewport} />
+          <TextNode key={t.id} text={t} canvasRef={cwRef} viewport={viewport} zoom={zoom} />
         ))}
       </div>
 
@@ -221,7 +259,7 @@ export default function Canvas() {
         opacity: 0.85,
       }}>
         {modeText}
-        {' · Drag to pan · Shift-drag to multi-select'}
+        {interactionMode === 'move' ? ' · Drag to pan · Pinch/Ctrl+wheel to zoom' : ' · Drag to multi-select · Shift-click to add · Ctrl+wheel to zoom'}
       </div>
     </div>
   )

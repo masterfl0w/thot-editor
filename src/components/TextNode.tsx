@@ -8,10 +8,11 @@ interface Props {
   text: TextNodeType
   canvasRef: React.RefObject<HTMLDivElement | null>
   viewport: { x: number; y: number }
+  zoom: number
 }
 
-export default function TextNode({ text, canvasRef, viewport }: Props) {
-  const { selectText, selText, multiSel, startEditText, finishEditText, editingTextId, setCtxTarget, moveText } = useDiagram()
+export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
+  const { selectText, toggleMultiSel, selText, multiSel, startEditText, finishEditText, editingTextId, setCtxTarget, moveText } = useDiagram()
 
   const isSelected = selText === text.id
   const isMultiSel = multiSel.has(text.id) && !isSelected
@@ -82,7 +83,11 @@ export default function TextNode({ text, canvasRef, viewport }: Props) {
         const r = el?.getBoundingClientRect()
         if (r) { d.ox = me.clientX - wr.left - (r.left - wr.left); d.oy = me.clientY - wr.top - (r.top - wr.top) }
       }
-      moveText(text.id, me.clientX - wr.left - d.ox + viewport.x, me.clientY - wr.top - d.oy + viewport.y)
+      moveText(
+        text.id,
+        viewport.x + (me.clientX - wr.left - d.ox) / zoom,
+        viewport.y + (me.clientY - wr.top - d.oy) / zoom,
+      )
     }
 
     const onUp = () => {
@@ -98,7 +103,12 @@ export default function TextNode({ text, canvasRef, viewport }: Props) {
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (isEditing) return
-    if (!dragRef.current.moved) selectText(text.id)
+    if (dragRef.current.moved) return
+    if (e.shiftKey) {
+      toggleMultiSel(text.id)
+      return
+    }
+    selectText(text.id)
   }
 
   const handleDblClick = (e: React.MouseEvent) => {

@@ -8,11 +8,12 @@ interface Props {
   node: DiagramNodeType
   canvasRef: React.RefObject<HTMLDivElement | null>
   viewport: { x: number; y: number }
+  zoom: number
 }
 
-export default function DiagramNode({ node, canvasRef, viewport }: Props) {
+export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) {
   const {
-    selectNode, selNode, csrc, multiSel, cmode,
+    selectNode, toggleMultiSel, selNode, csrc, multiSel, cmode,
     attachChild, detachNode, addEdge, cancelConnect,
     setCtxTarget, moveNode,
   } = useDiagram()
@@ -62,8 +63,8 @@ export default function DiagramNode({ node, canvasRef, viewport }: Props) {
       multiDragRef.current = { active: true, startX: e.clientX, startY: e.clientY, origins }
       const onMove = (me: MouseEvent) => {
         const { moveNode, moveText } = useDiagram.getState()
-        const dx = me.clientX - multiDragRef.current.startX
-        const dy = me.clientY - multiDragRef.current.startY
+        const dx = (me.clientX - multiDragRef.current.startX) / zoom
+        const dy = (me.clientY - multiDragRef.current.startY) / zoom
         multiSel.forEach(id => {
           const o = multiDragRef.current.origins[id]
           if (!o) return
@@ -110,8 +111,8 @@ export default function DiagramNode({ node, canvasRef, viewport }: Props) {
           detachNode(
             node.id,
             true,
-            nr ? nr.left - wr.left + viewport.x : cur.x,
-            nr ? nr.top - wr.top + viewport.y : cur.y,
+            nr ? viewport.x + (nr.left - wr.left) / zoom : cur.x,
+            nr ? viewport.y + (nr.top - wr.top) / zoom : cur.y,
           )
         }
       }
@@ -122,8 +123,8 @@ export default function DiagramNode({ node, canvasRef, viewport }: Props) {
         if (r) { d.ox = me.clientX - wr.left - (r.left - wr.left); d.oy = me.clientY - wr.top - (r.top - wr.top) }
       }
 
-      const newX = me.clientX - wr.left - d.ox + viewport.x
-      const newY = me.clientY - wr.top - d.oy + viewport.y
+      const newX = viewport.x + (me.clientX - wr.left - d.ox) / zoom
+      const newY = viewport.y + (me.clientY - wr.top - d.oy) / zoom
       moveNode(node.id, newX, newY)
 
       const under = findDropTarget(me.clientX, me.clientY, node.id)
@@ -164,6 +165,10 @@ export default function DiagramNode({ node, canvasRef, viewport }: Props) {
       }
       return
     }
+    if (e.shiftKey) {
+      toggleMultiSel(node.id)
+      return
+    }
     selectNode(node.id)
   }
 
@@ -181,7 +186,37 @@ export default function DiagramNode({ node, canvasRef, viewport }: Props) {
   }
 
   const borderColor = isSelected ? '#6c6cff' : isConnSrc ? '#22c57a' : (isChild ? 'rgba(255,255,255,0.25)' : 'transparent')
-  const boxShadow = isSelected ? '0 0 0 3px rgba(108,108,255,0.18)' : isMultiSel ? '0 0 0 2px rgba(108,108,255,0.14)' : 'none'
+  const multiBorderColor = isMultiSel ? '#4f7cff' : borderColor
+  const boxShadow = isSelected
+    ? '0 0 0 3px rgba(108,108,255,0.18)'
+    : isMultiSel
+      ? '0 0 0 3px rgba(79,124,255,0.22), 0 10px 24px rgba(79,124,255,0.16)'
+      : 'none'
+  const selectionBadge = isMultiSel ? (
+    <div
+      style={{
+        position: 'absolute',
+        top: -10,
+        right: -10,
+        width: 18,
+        height: 18,
+        borderRadius: '999px',
+        background: '#4f7cff',
+        border: '2px solid #fff',
+        boxShadow: '0 3px 10px rgba(79,124,255,0.35)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#fff',
+        fontSize: 11,
+        fontWeight: 700,
+        pointerEvents: 'none',
+        zIndex: 30,
+      }}
+    >
+      +
+    </div>
+  ) : null
 
   const ports = (
     <div className="ports" style={{ opacity: isSelected || isConnSrc ? 1 : 0, transition: 'opacity 0.15s', pointerEvents: 'none' }}>
@@ -212,8 +247,8 @@ export default function DiagramNode({ node, canvasRef, viewport }: Props) {
           flex: '0 0 auto',
           borderRadius: node.radius,
           cursor: 'move',
-          background: 'rgba(255,255,255,0.1)',
-          border: `1.5px solid ${borderColor}`,
+          background: isMultiSel ? 'rgba(79,124,255,0.18)' : 'rgba(255,255,255,0.1)',
+          border: `1.5px solid ${multiBorderColor}`,
           padding: '8px 12px',
           textAlign: 'center',
           display: 'flex',
@@ -228,6 +263,7 @@ export default function DiagramNode({ node, canvasRef, viewport }: Props) {
         onClick={handleClick}
         onContextMenu={handleContextMenu}
       >
+        {selectionBadge}
         {ports}
         <span style={{ fontSize: 12, fontWeight: 500, lineHeight: 1.3, pointerEvents: 'none' }}>{node.title}</span>
         {node.desc && <span style={{ fontSize: 10, display: 'block', marginTop: 2, pointerEvents: 'none', opacity: 0.75 }}>{node.desc}</span>}
@@ -249,13 +285,16 @@ export default function DiagramNode({ node, canvasRef, viewport }: Props) {
           left: node.x,
           top: node.y,
           userSelect: 'none',
-          border: `2px solid ${borderColor}`,
+          border: `2px solid ${multiBorderColor}`,
           boxShadow,
           minWidth: 120,
+          outline: isMultiSel ? '1.5px dashed rgba(79,124,255,0.8)' : 'none',
+          outlineOffset: 4,
         }}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
       >
+        {selectionBadge}
         {ports}
         <div style={{ padding: '10px 14px 8px', cursor: 'move', textAlign: 'center' }} onMouseDown={handleMouseDown}>
           <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, display: 'block', pointerEvents: 'none' }}>{node.title}</span>
@@ -264,7 +303,7 @@ export default function DiagramNode({ node, canvasRef, viewport }: Props) {
         <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', gap: 8, padding: '8px 10px 10px', alignItems: 'stretch', minHeight: 30 }}>
           {node.children.map(cid => {
             const child = useDiagram.getState().nodes[cid]
-            return child ? <DiagramNode key={cid} node={child} canvasRef={canvasRef} viewport={viewport} /> : null
+            return child ? <DiagramNode key={cid} node={child} canvasRef={canvasRef} viewport={viewport} zoom={zoom} /> : null
           })}
         </div>
       </div>
@@ -291,14 +330,17 @@ export default function DiagramNode({ node, canvasRef, viewport }: Props) {
         alignItems: 'center',
         justifyContent: 'center',
         userSelect: 'none',
-        border: `2px solid ${borderColor}`,
+        border: `2px solid ${multiBorderColor}`,
         boxShadow,
+        outline: isMultiSel ? '1.5px dashed rgba(79,124,255,0.8)' : 'none',
+        outlineOffset: 4,
         transition: 'box-shadow 0.12s, border-color 0.12s',
       }}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
     >
+      {selectionBadge}
       {ports}
       <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, display: 'block', pointerEvents: 'none' }}>{node.title}</span>
       {node.desc && <span style={{ fontSize: 11, display: 'block', marginTop: 2, pointerEvents: 'none', opacity: 0.75 }}>{node.desc}</span>}

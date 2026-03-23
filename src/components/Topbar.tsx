@@ -30,6 +30,27 @@ const IconChevron = () => (
     <path d="M2.5 4l2.5 2.5L7.5 4" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
   </svg>
 )
+const IconCursor = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <path d="M3 2.2v8.6l2.1-2.3 1.9 2.3 1.1-.9-1.9-2.3H10L3 2.2z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/>
+  </svg>
+)
+const IconHand = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <path d="M4.2 6.2V3.4a.8.8 0 011.6 0v2M5.8 5.9V2.7a.8.8 0 111.6 0v3M7.4 6.1V3.7a.8.8 0 111.6 0v3.1M3.1 6.9l.8 3a1.5 1.5 0 001.5 1.1h2.1a1.8 1.8 0 001.7-1.2l.4-1.2a3 3 0 00-.5-2.8l-.7-.8a.8.8 0 10-1.2 1l.2.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+const IconMinus = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <line x1="3" y1="6.5" x2="10" y2="6.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+  </svg>
+)
+const IconPlus = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <line x1="3" y1="6.5" x2="10" y2="6.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+    <line x1="6.5" y1="3" x2="6.5" y2="10" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+  </svg>
+)
 
 const topbarStyle = css({
   height: '42px',
@@ -121,7 +142,7 @@ const menuSepStyle = css({
 export default function Topbar() {
   const [editOpen, setEditOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const { addBox, addText, clearAll, selectNode, selectText, startEditText } = useDiagram()
+  const { addBox, addText, clearAll, selectNode, selectText, startEditText, interactionMode, setInteractionMode, zoom, setZoom } = useDiagram()
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -149,6 +170,10 @@ export default function Topbar() {
     setEditOpen(false)
   }
 
+  const updateZoom = (delta: number) => {
+    setZoom(Math.max(0.4, Math.min(2.5, Number((zoom + delta).toFixed(2)))))
+  }
+
   return (
     <div className={topbarStyle}>
       <span style={{ fontSize: 13, fontWeight: 500, color: '#888780', padding: '0 6px', marginRight: 4 }}>
@@ -170,6 +195,23 @@ export default function Topbar() {
           </div>
         )}
       </div>
+      <div className={sepStyle} />
+      <button
+        className={btnStyle + ' ' + (interactionMode === 'select' ? css({ background: '#f0ede8', '@media (prefers-color-scheme: dark)': { background: '#3d3d3a' } }) : '')}
+        onClick={() => setInteractionMode('select')}
+      >
+        <IconCursor /> Select
+      </button>
+      <button
+        className={btnStyle + ' ' + (interactionMode === 'move' ? css({ background: '#f0ede8', '@media (prefers-color-scheme: dark)': { background: '#3d3d3a' } }) : '')}
+        onClick={() => setInteractionMode('move')}
+      >
+        <IconHand /> Move
+      </button>
+      <div className={sepStyle} />
+      <button className={btnStyle} onClick={() => updateZoom(-0.1)}><IconMinus /></button>
+      <button className={btnStyle} onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
+      <button className={btnStyle} onClick={() => updateZoom(0.1)}><IconPlus /></button>
       <div className={sepStyle} />
       <button className={btnStyle} onClick={doAddBox}><IconBox /> Box</button>
       <button className={btnStyle} onClick={doAddText}><IconText /> Text</button>
