@@ -1,6 +1,7 @@
 import { useRef, useCallback, useState } from 'react'
 import { autoBorder, useDiagram } from '../store/diagramStore'
 import type { DiagramNode as DiagramNodeType, PortSide } from '../types'
+import MathText from './MathText'
 
 const THRESH = 6
 
@@ -342,8 +343,8 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
       >
         {selectionBadge}
         {ports}
-        <span style={titleTextStyle}>{node.title}</span>
-        {node.desc && <span style={descTextStyle}>{node.desc}</span>}
+        <span style={titleTextStyle}><MathText content={node.title} align="center" /></span>
+        {node.desc && <span style={descTextStyle}><MathText content={node.desc} align="center" /></span>}
       </div>
     )
   }
@@ -378,8 +379,8 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
         {selectionBadge}
         {ports}
         <div style={{ padding: '10px 14px 8px', cursor: 'move', textAlign: 'center' }} onMouseDown={handleMouseDown}>
-          <span style={{ ...titleTextStyle, display: 'block' }}>{node.title}</span>
-          {node.desc && <span style={descTextStyle}>{node.desc}</span>}
+          <span style={{ ...titleTextStyle, display: 'block' }}><MathText content={node.title} align="center" /></span>
+          {node.desc && <span style={descTextStyle}><MathText content={node.desc} align="center" /></span>}
         </div>
         <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', gap: 8, padding: '8px 10px 10px', alignItems: 'stretch', minHeight: 30 }}>
           {node.children.map(cid => {
@@ -428,8 +429,8 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
     >
       {selectionBadge}
       {ports}
-      <span style={{ ...titleTextStyle, display: 'block' }}>{node.title}</span>
-      {node.desc && <span style={descTextStyle}>{node.desc}</span>}
+      <span style={{ ...titleTextStyle, display: 'block' }}><MathText content={node.title} align="center" /></span>
+      {node.desc && <span style={descTextStyle}><MathText content={node.desc} align="center" /></span>}
     </div>
   )
 }

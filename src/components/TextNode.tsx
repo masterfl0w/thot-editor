@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react'
 import { useDiagram } from '../store/diagramStore'
 import type { TextNode as TextNodeType } from '../types'
+import MathText from './MathText'
 
 const THRESH = 6
 
@@ -193,7 +194,7 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
       onContextMenu={handleContextMenu}
     >
       {badge}
-      {text.content}
+      <MathText content={text.content} align={text.align} />
     </div>
   )
 }
