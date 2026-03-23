@@ -25,6 +25,7 @@ interface DiagramState {
   texts: Record<string, TextNode>
   edges: Edge[]
   viewport: { x: number; y: number }
+  pointer: { x: number; y: number } | null
   zoom: number
   interactionMode: 'select' | 'move'
   selNode: string | null
@@ -68,6 +69,7 @@ interface DiagramState {
   setModeText: (t: string) => void
   setInteractionMode: (mode: 'select' | 'move') => void
   setViewport: (viewport: { x: number; y: number }) => void
+  setPointer: (pointer: { x: number; y: number } | null) => void
   setZoom: (zoom: number) => void
   moveNode: (id: string, x: number, y: number) => void
   moveText: (id: string, x: number, y: number) => void
@@ -80,6 +82,7 @@ export const useDiagram = create<DiagramState>((set, get) => ({
   texts: {},
   edges: [],
   viewport: { x: 0, y: 0 },
+  pointer: null,
   zoom: 1,
   interactionMode: 'select',
   selNode: null,
@@ -132,7 +135,7 @@ export const useDiagram = create<DiagramState>((set, get) => ({
       x: opts.x ?? 100,
       y: opts.y ?? 80,
       size: opts.size ?? 16,
-      color: opts.color ?? '#1a1a18',
+      color: opts.color ?? '#ffffff',
       family: opts.family ?? 'inherit',
       bold: opts.bold ?? false,
       italic: opts.italic ?? false,
@@ -345,6 +348,8 @@ export const useDiagram = create<DiagramState>((set, get) => ({
   }),
 
   setViewport: (viewport) => set({ viewport }),
+
+  setPointer: (pointer) => set({ pointer }),
 
   setZoom: (zoom) => set({ zoom }),
 

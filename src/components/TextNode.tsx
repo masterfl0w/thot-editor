@@ -12,12 +12,12 @@ interface Props {
 }
 
 export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
-  const { selectText, toggleMultiSel, selText, multiSel, startEditText, finishEditText, editingTextId, setCtxTarget, moveText } = useDiagram()
+  const { selectText, toggleMultiSel, selText, multiSel, startEditText, finishEditText, editingTextId, setCtxTarget, moveText, updateText } = useDiagram()
 
   const isSelected = selText === text.id
   const isMultiSel = multiSel.has(text.id) && !isSelected
   const isEditing = editingTextId === text.id
-  const elRef = useRef<HTMLDivElement>(null)
+  const elRef = useRef<HTMLDivElement | HTMLTextAreaElement>(null)
   const dragRef = useRef({ active: false, startX: 0, startY: 0, moved: false, ox: 0, oy: 0 })
 
   const textStyle: React.CSSProperties = {
@@ -26,7 +26,7 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
     top: text.y,
     cursor: isEditing ? 'text' : 'move',
     userSelect: 'none',
-    border: `2px solid ${isSelected || isMultiSel ? '#6c6cff' : 'transparent'}`,
+    border: `2px solid ${isSelected ? '#6c6cff' : isMultiSel ? '#4f7cff' : 'transparent'}`,
     padding: '4px 6px',
     borderRadius: 4,
     minWidth: 40,
@@ -42,25 +42,25 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
     textDecoration: [text.underline ? 'underline' : '', text.strike ? 'line-through' : ''].filter(Boolean).join(' '),
     textAlign: text.align,
     opacity: text.opacity / 100,
-    boxShadow: isSelected || isMultiSel ? '0 0 0 2px rgba(108,108,255,0.18)' : 'none',
-    background: isEditing ? '#f5f3ee' : 'transparent',
+    boxShadow: isSelected
+      ? '0 0 0 2px rgba(108,108,255,0.18)'
+      : isMultiSel
+        ? '0 0 0 3px rgba(79,124,255,0.18), 0 8px 18px rgba(79,124,255,0.12)'
+        : 'none',
+    background: isEditing ? 'rgba(245,243,238,0.12)' : isMultiSel ? 'rgba(79,124,255,0.08)' : 'transparent',
     outline: 'none',
   }
 
   useEffect(() => {
-    if (!elRef.current) return
+    const el = elRef.current
+    if (!el) return
+
     if (isEditing) {
-      elRef.current.contentEditable = 'true'
-      elRef.current.focus()
-      // put cursor at end
-      const range = document.createRange()
-      range.selectNodeContents(elRef.current)
-      range.collapse(false)
-      const sel = window.getSelection()
-      sel?.removeAllRanges()
-      sel?.addRange(range)
-    } else {
-      elRef.current.contentEditable = 'false'
+      el.focus()
+      if (el instanceof HTMLTextAreaElement) {
+        el.selectionStart = el.value.length
+        el.selectionEnd = el.value.length
+      }
     }
   }, [isEditing])
 
@@ -123,24 +123,76 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
   }
 
   const handleBlur = () => {
-    if (isEditing && elRef.current) {
-      finishEditText(text.id, elRef.current.textContent ?? '')
-    }
+    if (isEditing) finishEditText(text.id)
+  }
+
+  const badge = isMultiSel && !isEditing ? (
+    <div
+      style={{
+        position: 'absolute',
+        top: -10,
+        right: -10,
+        width: 18,
+        height: 18,
+        borderRadius: '999px',
+        background: '#4f7cff',
+        border: '2px solid #fff',
+        boxShadow: '0 3px 10px rgba(79,124,255,0.35)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#fff',
+        fontSize: 11,
+        fontWeight: 700,
+        pointerEvents: 'none',
+        zIndex: 30,
+      }}
+    >
+      +
+    </div>
+  ) : null
+
+  if (isEditing) {
+    return (
+      <div style={{ position: 'absolute', left: text.x, top: text.y }}>
+        <textarea
+          id={'tn-' + text.id}
+          ref={elRef as React.RefObject<HTMLTextAreaElement>}
+          value={text.content}
+          style={{
+            ...textStyle,
+            position: 'relative',
+            left: 0,
+            top: 0,
+            display: 'block',
+            resize: 'none',
+            overflow: 'hidden',
+            minWidth: 80,
+            minHeight: Math.max(text.size * 1.8, 32),
+            border: '2px solid #6c6cff',
+            boxShadow: '0 0 0 3px rgba(108,108,255,0.18)',
+          }}
+          onChange={e => updateText(text.id, { content: e.target.value })}
+          onBlur={handleBlur}
+          onMouseDown={e => e.stopPropagation()}
+          onContextMenu={handleContextMenu}
+        />
+      </div>
+    )
   }
 
   return (
     <div
       id={'tn-' + text.id}
-      ref={elRef}
+      ref={elRef as React.RefObject<HTMLDivElement>}
       style={textStyle}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
       onDoubleClick={handleDblClick}
       onContextMenu={handleContextMenu}
-      onBlur={handleBlur}
-      suppressContentEditableWarning
     >
-      {!isEditing ? text.content : undefined}
+      {badge}
+      {text.content}
     </div>
   )
 }

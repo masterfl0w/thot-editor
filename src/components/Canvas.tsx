@@ -56,6 +56,7 @@ export default function Canvas() {
     setMultiSel,
     clearMultiSel,
     deselectAll,
+    setPointer,
     setViewport,
     setZoom,
   } = useDiagram()
@@ -162,6 +163,15 @@ export default function Canvas() {
     }
   }
 
+  const onPointerMove = (e: React.MouseEvent) => {
+    const wr = cwRef.current?.getBoundingClientRect()
+    if (!wr) return
+    setPointer({
+      x: viewport.x + (e.clientX - wr.left) / zoom,
+      y: viewport.y + (e.clientY - wr.top) / zoom,
+    })
+  }
+
   const onWheel = (e: React.WheelEvent) => {
     if (!e.deltaX && !e.deltaY) return
     e.preventDefault()
@@ -189,6 +199,7 @@ export default function Canvas() {
   return (
     <div
       ref={cwRef}
+      data-canvas-root="true"
       style={{
         flex: 1,
         position: 'relative',
@@ -197,6 +208,7 @@ export default function Canvas() {
         background: isDark ? '#1a1a18' : '#f5f3ee',
       }}
       onMouseDown={onCanvasMouseDown}
+      onMouseMove={onPointerMove}
       onContextMenu={onContextMenu}
       onWheel={onWheel}
     >
