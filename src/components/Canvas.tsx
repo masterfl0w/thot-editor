@@ -334,7 +334,7 @@ export default function Canvas() {
         whiteSpace: 'nowrap',
         opacity: 0.85,
       }}>
-        v0.2.2
+        v0.3
       </div>
     </div>
   )
