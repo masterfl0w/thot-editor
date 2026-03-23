@@ -143,6 +143,28 @@ const btnStyle = css({
   },
 })
 
+const brandStyle = css({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '0 8px 0 4px',
+  height: '30px',
+  flexShrink: 0,
+  '& img': {
+    display: 'block',
+    height: '19px',
+    width: 'auto',
+    objectFit: 'contain',
+    opacity: 0.96,
+  },
+  '[data-theme=dark] &': {
+    '& img': {
+      filter: 'brightness(0) invert(1)',
+      opacity: 0.92,
+    },
+  },
+})
+
 const menuStyle = css({
   position: 'absolute',
   top: '44px',
@@ -231,9 +253,9 @@ export default function Topbar() {
 
   return (
     <div className={topbarStyle}>
-      <span style={{ fontSize: 13, fontWeight: 500, color: '#888780', padding: '0 6px', marginRight: 4 }}>
-        Thot Editor
-      </span>
+      <div className={brandStyle} aria-label="Thot Editor">
+        <img src="/thot_dark_icon_transparency.svg" alt="Thot Editor" />
+      </div>
       <div className={sepStyle} />
       <div style={{ position: 'relative' }} ref={editRef}>
         <button className={btnStyle} onClick={() => { setEditOpen(o => !o); setSettingsOpen(false) }}>

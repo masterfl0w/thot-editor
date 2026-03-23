@@ -46,7 +46,6 @@ export default function Canvas() {
     viewport,
     zoom,
     interactionMode,
-    modeText,
     cmode,
     cancelConnect,
     editingTextId,
@@ -257,7 +256,7 @@ export default function Canvas() {
         }} />
       )}
 
-      {/* Mode bar */}
+      {/* Version bar */}
       <div style={{
         position: 'absolute',
         bottom: 10,
@@ -273,8 +272,7 @@ export default function Canvas() {
         whiteSpace: 'nowrap',
         opacity: 0.85,
       }}>
-        {modeText}
-        {interactionMode === 'move' ? ' · Drag to pan · Pinch/Ctrl+wheel to zoom' : ' · Drag to multi-select · Shift-click to add · Ctrl+wheel to zoom'}
+        v0.2.2
       </div>
     </div>
   )
