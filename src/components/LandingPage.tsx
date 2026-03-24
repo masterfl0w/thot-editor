@@ -360,7 +360,7 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <img src="/thot_dark_icon_transparency.svg" alt="Thot Editor" style={{ height: 26, width: 'auto' }} />
             <span style={{ fontSize: 16, color: '#1a1a18', fontWeight: 800, letterSpacing: '-0.02em' }}>Thot Editor</span>
-            <span style={{ fontSize: 14, color: '#5f5e5a', fontWeight: 600 }}>v0.3</span>
+            <span style={{ fontSize: 14, color: '#5f5e5a', fontWeight: 600 }}>v0.3.1</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <a
