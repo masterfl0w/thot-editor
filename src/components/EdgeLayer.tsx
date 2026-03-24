@@ -1,9 +1,25 @@
 import { useState } from 'react'
 import { useDiagram } from '../store/diagramStore'
 import type { PortSide } from '../types'
+import MathText from './MathText'
 
 type TooltipState = { x: number; y: number; label: string; desc: string } | null
 type EdgeEndpoints = { sx: number; sy: number; ex: number; ey: number }
+
+function insetEdgePoints(pts: EdgeEndpoints, startInset: number, endInset: number): EdgeEndpoints {
+  const dx = pts.ex - pts.sx
+  const dy = pts.ey - pts.sy
+  const len = Math.hypot(dx, dy) || 1
+  const ux = dx / len
+  const uy = dy / len
+  return {
+    sx: pts.sx + ux * startInset,
+    sy: pts.sy + uy * startInset,
+    ex: pts.ex - ux * endInset,
+    ey: pts.ey - uy * endInset,
+  }
+}
+
 export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElement | null> }) {
   const { edges, nodes, selEdge, selectEdge, cmode, csrc, csrcSide, pointer, viewport, zoom, theme } = useDiagram()
   const [tooltip, setTooltip] = useState<TooltipState>(null)
@@ -139,7 +155,9 @@ export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HT
           if (!nodes[edge.from] || !nodes[edge.to]) return null
           const p = edgePts(edge.from, edge.to, edge.fromSide, edge.toSide)
           if (!p) return null
-          const shape = edgeShape(p, edge.route ?? 'straight', edge.bend ?? 0)
+          const insetStart = edge.arrow === 'both' ? 7 : 0
+          const insetEnd = edge.arrow !== 'none' ? 8 : 0
+          const shape = edgeShape(insetEdgePoints(p, insetStart, insetEnd), edge.route ?? 'straight', edge.bend ?? 0)
           const isSel = idx === selEdge
           const c = isSel ? '#6c6cff' : (edge.color || '#888780')
           const dash = edge.style === 'dashed' ? '8 5' : edge.style === 'dotted' ? '2 4' : undefined
@@ -160,26 +178,31 @@ export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HT
               {/* Invisible hit area */}
               <path d={shape.path}
                 stroke="transparent" strokeWidth="16"
+                fill="none"
                 style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
                 onClick={(e) => { e.stopPropagation(); selectEdge(idx) }}
-                onMouseEnter={() => {
-                  if (edge.desc) setTooltip({ x: shape.labelX, y: shape.labelY, label: edge.label, desc: edge.desc })
-                }}
                 onMouseLeave={() => setTooltip(null)}
                 onMouseMove={(e) => {
                   if (edge.desc) {
                     const cw = canvasRef.current
                     if (!cw) return
                     const wr = cw.getBoundingClientRect()
-                    setTooltip({ x: e.clientX - wr.left + 12, y: e.clientY - wr.top - 34, label: edge.label, desc: edge.desc })
+                    const sx = e.clientX - wr.left + 14
+                    const sy = e.clientY - wr.top - 14
+                    setTooltip({
+                      x: viewport.x + sx / zoom,
+                      y: viewport.y + sy / zoom,
+                      label: edge.label,
+                      desc: edge.desc,
+                    })
                   }
                 }}
               />
               {edge.label && (
                 <>
-                  <rect x={shape.labelX - lw / 2} y={shape.labelY - 10} width={lw} height={16} rx={4}
+                  <rect x={shape.labelX - lw / 2} y={shape.labelY - 11} width={lw} height={22} rx={6}
                     fill={bgRect} stroke={isSel ? '#6c6cff' : c} strokeWidth="0.5" />
-                  <text x={shape.labelX} y={shape.labelY + 2} textAnchor="middle" dominantBaseline="central"
+                  <text x={shape.labelX} y={shape.labelY} textAnchor="middle" dominantBaseline="middle"
                     style={{ fontSize: 11, fill: textFill, fontFamily: 'system-ui,sans-serif', pointerEvents: 'none' }}>
                     {edge.label}
                   </text>
@@ -223,7 +246,9 @@ export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HT
           color: isDark ? '#f5f3ee' : '#1a1a18',
         }}>
           <strong style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>{tooltip.label || 'Link'}</strong>
-          <span style={{ color: '#888780', fontSize: 11 }}>{tooltip.desc}</span>
+          <div style={{ color: '#888780', fontSize: 11 }}>
+            <MathText content={tooltip.desc} />
+          </div>
         </div>
       )}
     </>
