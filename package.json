@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "collab-server": "node server/collab-server.mjs",
+    "codegen": "panda codegen",
     "dev": "vite",
-    "build": "panda codegen && tsc -b && vite build",
-    "typecheck": "tsc -b",
+    "build": "npm run codegen && npm run typecheck && vite build",
+    "typecheck": "npm run codegen && tsc -b",
     "lint": "eslint . --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
