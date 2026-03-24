@@ -34,67 +34,290 @@ function DemoWindow() {
   )
 }
 
-function ExampleCard({
-  title,
-  desc,
-  tags,
-}: {
-  title: string
-  desc: string
-  tags: string[]
-}) {
+function ExamplesGrid() {
+  const cards = [
+    {
+      title: 'Architecture maps',
+      desc: 'Explain frontend, backend, model routing and local tooling in a single board with nested nodes and clear structure.',
+      tags: ['System design', 'Nested boxes', 'Links'],
+    },
+    {
+      title: 'JSON to graph',
+      desc: 'Paste a JSON payload and turn it into a structured Thot workspace, then export the updated graph back to JSON.',
+      tags: ['Import JSON', 'Export JSON', 'Graph config'],
+    },
+    {
+      title: 'Math and notes',
+      desc: 'Mix technical notes, inline equations, and visual organization in one place without switching tools.',
+      tags: ['Equations', 'Notes', 'Technical docs'],
+    },
+    {
+      title: 'Collaborative boards',
+      desc: 'Approve guests, follow live cursors, and keep the host as the owner of the persisted shared workspace.',
+      tags: ['Live cursors', 'Host approval', 'Shared edits'],
+    },
+  ]
+
   return (
     <div
       className={css({
-        borderRadius: '26px',
-        border: '1px solid rgba(0,0,0,0.08)',
-        background: 'rgba(255,255,255,0.78)',
-        boxShadow: '0 24px 60px rgba(32,28,22,0.08)',
-        padding: '24px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+        gap: '16px',
+        '@media (max-width: 1100px)': {
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        },
+        '@media (max-width: 640px)': {
+          gridTemplateColumns: '1fr',
+        },
       })}
     >
-      <div
-        className={css({
-          height: '180px',
-          borderRadius: '20px',
-          background:
-            'linear-gradient(180deg, rgba(255,255,255,0.54) 0%, rgba(238,231,222,0.82) 100%)',
-          border: '1px solid rgba(0,0,0,0.06)',
-          marginBottom: '18px',
-          position: 'relative',
-          overflow: 'hidden',
-        })}
-      >
-        <div style={{ position: 'absolute', inset: 0, padding: 18 }}>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-            <div style={{ flex: 1, height: 56, borderRadius: 16, background: '#e8e6ff', border: '1px solid rgba(0,0,0,0.06)' }} />
-            <div style={{ width: 92, height: 56, borderRadius: 16, background: '#d1f0e3', border: '1px solid rgba(0,0,0,0.06)' }} />
+      {cards.map(card => (
+        <div
+          key={card.title}
+          className={css({
+            borderRadius: '24px',
+            background: 'rgba(255,255,255,0.78)',
+            border: '1px solid rgba(0,0,0,0.06)',
+            boxShadow: '0 18px 42px rgba(32,28,22,0.07)',
+            padding: '22px',
+            minHeight: '228px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+          })}
+        >
+          <div>
+            <div
+              className={css({
+                display: 'inline-flex',
+                alignItems: 'center',
+                borderRadius: '999px',
+                padding: '6px 10px',
+                background: '#f0ede8',
+                color: '#7c5e47',
+                fontSize: '11px',
+                fontWeight: '800',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+                marginBottom: '16px',
+              })}
+            >
+              Core use case
+            </div>
+            <div style={{ fontSize: 24, lineHeight: 1.1, fontWeight: 800, color: '#1a1a18', marginBottom: 12 }}>
+              {card.title}
+            </div>
+            <div style={{ fontSize: 15, lineHeight: 1.65, color: '#5f5e5a' }}>{card.desc}</div>
           </div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div style={{ width: 76, height: 76, borderRadius: '999px', background: '#ffd7b8', border: '1px solid rgba(0,0,0,0.06)' }} />
-            <div style={{ flex: 1, height: 90, borderRadius: 18, background: '#ffd5df', border: '1px solid rgba(0,0,0,0.06)' }} />
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 18 }}>
+            {card.tags.map(tag => (
+              <span
+                key={tag}
+                className={css({
+                  borderRadius: '999px',
+                  padding: '7px 12px',
+                  background: '#f0ede8',
+                  color: '#5f5e5a',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                })}
+              >
+                {tag}
+              </span>
+            ))}
           </div>
         </div>
+      ))}
+    </div>
+  )
+}
+
+function CollaborationFrame() {
+  return (
+    <div
+      className={css({
+        position: 'relative',
+        borderRadius: '30px',
+        overflow: 'hidden',
+        minHeight: '420px',
+        background: '#1b1a17',
+        border: '1px solid rgba(0,0,0,0.08)',
+        boxShadow: '0 28px 70px rgba(10,10,10,0.24)',
+      })}
+    >
+      <style>{`
+        @keyframes collab-node-a {
+          0%, 100% { transform: translate(0px, 0px); }
+          50% { transform: translate(18px, -10px); }
+        }
+        @keyframes collab-node-b {
+          0%, 100% { transform: translate(0px, 0px); }
+          50% { transform: translate(-22px, 14px); }
+        }
+        @keyframes collab-cursor-a {
+          0%, 100% { transform: translate(86px, 96px); }
+          35% { transform: translate(230px, 150px); }
+          70% { transform: translate(170px, 250px); }
+        }
+        @keyframes collab-cursor-b {
+          0%, 100% { transform: translate(420px, 128px); }
+          30% { transform: translate(520px, 222px); }
+          65% { transform: translate(360px, 286px); }
+        }
+        @keyframes collab-link-glow {
+          0%, 100% { opacity: 0.45; }
+          50% { opacity: 1; }
+        }
+      `}</style>
+      <div
+        className={css({
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: 'radial-gradient(rgba(255,255,255,0.10) 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
+          opacity: 0.55,
+        })}
+      />
+      <div
+        className={css({
+          position: 'absolute',
+          top: '20px',
+          left: '20px',
+          right: '20px',
+          height: '46px',
+          borderRadius: '18px',
+          background: 'rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 16px',
+          color: '#f5f3ee',
+          backdropFilter: 'blur(16px)',
+        })}
+      >
+        <div style={{ fontSize: 13, fontWeight: 700 }}>Collaboration live session</div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: 'rgba(245,243,238,0.72)' }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#98dbc6' }} />
+          3 active editors
+        </div>
       </div>
-      <div style={{ fontSize: 20, fontWeight: 700, color: '#1a1a18', marginBottom: 8 }}>{title}</div>
-      <div style={{ fontSize: 14, lineHeight: 1.6, color: '#5f5e5a', marginBottom: 14 }}>{desc}</div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {tags.map(tag => (
-          <span
-            key={tag}
-            className={css({
-              borderRadius: '999px',
-              padding: '7px 12px',
-              background: '#f0ede8',
-              color: '#5f5e5a',
-              fontSize: '12px',
-              fontWeight: '600',
-            })}
+
+      <svg viewBox="0 0 760 420" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        <path
+          d="M246 176 C 320 176, 358 176, 430 196"
+          stroke="rgba(255,255,255,0.48)"
+          strokeWidth="3"
+          fill="none"
+          strokeLinecap="round"
+          style={{ animation: 'collab-link-glow 2.8s ease-in-out infinite' }}
+        />
+        <path
+          d="M430 236 C 386 268, 324 300, 232 312"
+          stroke="rgba(255,255,255,0.38)"
+          strokeWidth="3"
+          fill="none"
+          strokeLinecap="round"
+          style={{ animation: 'collab-link-glow 3.2s ease-in-out infinite' }}
+        />
+      </svg>
+
+      <div
+        style={{
+          position: 'absolute',
+          left: 78,
+          top: 116,
+          width: 168,
+          borderRadius: 22,
+          background: '#e8e6ff',
+          border: '1px solid rgba(255,255,255,0.22)',
+          padding: 20,
+          animation: 'collab-node-a 4s ease-in-out infinite',
+        }}
+      >
+        <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a18', marginBottom: 10 }}>Research</div>
+        <div style={{ fontSize: 16, lineHeight: 1.55, color: '#5f5e5a' }}>Ideas, notes, and architecture threads evolve together.</div>
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          right: 92,
+          top: 156,
+          width: 214,
+          borderRadius: 22,
+          background: '#ffd7b8',
+          border: '1px solid rgba(255,255,255,0.22)',
+          padding: 20,
+          animation: 'collab-node-b 4.8s ease-in-out infinite',
+        }}
+      >
+        <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a18', marginBottom: 10 }}>Backend plan</div>
+        <div style={{ fontSize: 16, lineHeight: 1.55, color: '#5f5e5a' }}>IPC, model routing, and file sync stay readable while others edit.</div>
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          left: 170,
+          bottom: 54,
+          width: 184,
+          borderRadius: 22,
+          background: '#d1f0e3',
+          border: '1px solid rgba(255,255,255,0.22)',
+          padding: 18,
+        }}
+      >
+        <div style={{ fontSize: 22, fontWeight: 800, color: '#1a1a18', marginBottom: 8 }}>Shared review</div>
+        <div style={{ fontSize: 15, lineHeight: 1.55, color: '#4f675f' }}>Live cursors, approvals, and host-owned persistence.</div>
+      </div>
+
+      {[
+        { name: 'Ripley', color: '#98dbc6', animation: 'collab-cursor-a 5.6s ease-in-out infinite' },
+        { name: 'Spock', color: '#8fc7ff', animation: 'collab-cursor-b 5s ease-in-out infinite' },
+      ].map(member => (
+        <div
+          key={member.name}
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            animation: member.animation,
+          }}
+        >
+          <div
+            style={{
+              width: 12,
+              height: 12,
+              borderRadius: '50%',
+              background: member.color,
+              border: '2px solid #1b1a17',
+              boxShadow: '0 8px 16px rgba(0,0,0,0.26)',
+            }}
+          />
+          <div
+            style={{
+              marginTop: 8,
+              marginLeft: 12,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              borderRadius: 999,
+              padding: '6px 10px',
+              background: 'rgba(255,255,255,0.9)',
+              color: '#1a1a18',
+              fontSize: 12,
+              fontWeight: 700,
+              boxShadow: '0 14px 30px rgba(0,0,0,0.16)',
+              whiteSpace: 'nowrap',
+            }}
           >
-            {tag}
-          </span>
-        ))}
-      </div>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: member.color }} />
+            {member.name}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -283,6 +506,7 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
             >
               {[
                 ['Simple UX/UI', 'A focused interface built for thinking, not tool-hunting'],
+                ['Live collaboration', 'Invite collaborators, approve access, and track active cursors'],
                 ['Math formatting', 'Write equations and notes together directly on the canvas'],
                 ['JSON friendly', 'Import and export graphs as JSON without friction'],
               ].map(([title, body]) => (
@@ -323,30 +547,53 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
             </p>
           </div>
 
-          <div
-            className={css({
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-              gap: '18px',
-              '@media (max-width: 980px)': { gridTemplateColumns: '1fr' },
-            })}
-          >
-            <ExampleCard
-              title="Architecture maps"
-              desc="Explain frontend, backend, model routing and local tooling in a single diagram with nested nodes, links and clean structure."
-              tags={['System design', 'Nested boxes', 'Links']}
-            />
-            <ExampleCard
-              title="JSON to graph"
-              desc="Paste a JSON payload and turn it into a structured Thot workspace, then export the graph back to JSON after edits."
-              tags={['Import JSON', 'Export JSON', 'Graph config']}
-            />
-            <ExampleCard
-              title="Math and notes"
-              desc="Mix free text, equations and visual structure in one place for technical notes, specs and architecture reviews."
-              tags={['Equations', 'Notes', 'Technical docs']}
-            />
+          <ExamplesGrid />
+        </section>
+
+        <section
+          className={css({
+            paddingTop: '74px',
+            display: 'grid',
+            gridTemplateColumns: '0.92fr 1.08fr',
+            gap: '22px',
+            alignItems: 'center',
+            '@media (max-width: 980px)': { gridTemplateColumns: '1fr' },
+          })}
+        >
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#7c5e47', marginBottom: 10 }}>Collaboration</div>
+            <h2 style={{ fontSize: 'clamp(34px, 5vw, 56px)', lineHeight: 1.02, margin: '0 0 14px', letterSpacing: '-0.04em' }}>
+              Review, edit and move together without losing ownership.
+            </h2>
+            <p style={{ fontSize: 16, lineHeight: 1.7, color: '#5f5e5a', margin: '0 0 22px', maxWidth: 560 }}>
+              Thot Editor now supports live collaboration with host approval. Invite a collaborator through a magic link, accept the request, and watch active members move directly on the board with live cursor feedback.
+            </p>
+            <div style={{ display: 'grid', gap: 12, maxWidth: 560 }}>
+              {[
+                'Host approval before a guest can see and edit the workspace',
+                'Live cursor presence with distinct colors and member labels',
+                'Host-owned persistence so guest sessions stay temporary',
+                'Dedicated websocket server support for lighter, self-hosted rooms',
+              ].map(item => (
+                <div
+                  key={item}
+                  className={css({
+                    borderRadius: '16px',
+                    background: 'rgba(255,255,255,0.64)',
+                    border: '1px solid rgba(0,0,0,0.06)',
+                    padding: '14px 16px',
+                    color: '#3d3d3a',
+                    fontSize: '14px',
+                    lineHeight: 1.55,
+                  })}
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
           </div>
+
+          <CollaborationFrame />
         </section>
 
         <section
@@ -388,6 +635,7 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
             <div style={{ display: 'grid', gap: 12 }}>
               {[
                 'Simple UX/UI with a focused canvas and fast editing flow',
+                'Live collaboration with host approval, cursor presence and dedicated server support',
                 'Math notation inside text nodes and box content for equations',
                 'JSON-friendly import/export for graph configuration and automation',
                 'Infinite workspace with pan, zoom and free/static positioning',
