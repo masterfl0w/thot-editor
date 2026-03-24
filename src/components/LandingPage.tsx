@@ -1,9 +1,11 @@
+import type { FunctionComponent } from 'react'
 import { css } from '../../styled-system/css'
 
-function DemoWindow() {
-  const demoSrc = typeof window !== 'undefined'
-    ? `${window.location.pathname}${window.location.search}#demo`
-    : '#demo'
+const DemoWindow: FunctionComponent = () => {
+  const demoSrc =
+    typeof window !== 'undefined'
+      ? `${window.location.pathname}${window.location.search}#demo`
+      : '#demo'
 
   return (
     <div
@@ -34,7 +36,7 @@ function DemoWindow() {
   )
 }
 
-function ExamplesGrid() {
+const ExamplesGrid: FunctionComponent = () => {
   const cards = [
     {
       title: 'Architecture maps',
@@ -72,7 +74,7 @@ function ExamplesGrid() {
         },
       })}
     >
-      {cards.map(card => (
+      {cards.map((card) => (
         <div
           key={card.title}
           className={css({
@@ -105,13 +107,21 @@ function ExamplesGrid() {
             >
               Core use case
             </div>
-            <div style={{ fontSize: 24, lineHeight: 1.1, fontWeight: 800, color: '#1a1a18', marginBottom: 12 }}>
+            <div
+              style={{
+                fontSize: 24,
+                lineHeight: 1.1,
+                fontWeight: 800,
+                color: '#1a1a18',
+                marginBottom: 12,
+              }}
+            >
               {card.title}
             </div>
             <div style={{ fontSize: 15, lineHeight: 1.65, color: '#5f5e5a' }}>{card.desc}</div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 18 }}>
-            {card.tags.map(tag => (
+            {card.tags.map((tag) => (
               <span
                 key={tag}
                 className={css({
@@ -133,7 +143,7 @@ function ExamplesGrid() {
   )
 }
 
-function CollaborationFrame() {
+const CollaborationFrame: FunctionComponent = () => {
   return (
     <div
       className={css({
@@ -198,13 +208,24 @@ function CollaborationFrame() {
         })}
       >
         <div style={{ fontSize: 13, fontWeight: 700 }}>Collaboration live session</div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: 'rgba(245,243,238,0.72)' }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#98dbc6' }} />
-          3 active editors
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
+            fontSize: 12,
+            color: 'rgba(245,243,238,0.72)',
+          }}
+        >
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#98dbc6' }} />3
+          active editors
         </div>
       </div>
 
-      <svg viewBox="0 0 760 420" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      <svg
+        viewBox="0 0 760 420"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      >
         <path
           d="M246 176 C 320 176, 358 176, 430 196"
           stroke="rgba(255,255,255,0.48)"
@@ -236,8 +257,12 @@ function CollaborationFrame() {
           animation: 'collab-node-a 4s ease-in-out infinite',
         }}
       >
-        <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a18', marginBottom: 10 }}>Research</div>
-        <div style={{ fontSize: 16, lineHeight: 1.55, color: '#5f5e5a' }}>Ideas, notes, and architecture threads evolve together.</div>
+        <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a18', marginBottom: 10 }}>
+          Research
+        </div>
+        <div style={{ fontSize: 16, lineHeight: 1.55, color: '#5f5e5a' }}>
+          Ideas, notes, and architecture threads evolve together.
+        </div>
       </div>
 
       <div
@@ -253,8 +278,12 @@ function CollaborationFrame() {
           animation: 'collab-node-b 4.8s ease-in-out infinite',
         }}
       >
-        <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a18', marginBottom: 10 }}>Backend plan</div>
-        <div style={{ fontSize: 16, lineHeight: 1.55, color: '#5f5e5a' }}>IPC, model routing, and file sync stay readable while others edit.</div>
+        <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a18', marginBottom: 10 }}>
+          Backend plan
+        </div>
+        <div style={{ fontSize: 16, lineHeight: 1.55, color: '#5f5e5a' }}>
+          IPC, model routing, and file sync stay readable while others edit.
+        </div>
       </div>
 
       <div
@@ -269,14 +298,22 @@ function CollaborationFrame() {
           padding: 18,
         }}
       >
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#1a1a18', marginBottom: 8 }}>Shared review</div>
-        <div style={{ fontSize: 15, lineHeight: 1.55, color: '#4f675f' }}>Live cursors, approvals, and host-owned persistence.</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: '#1a1a18', marginBottom: 8 }}>
+          Shared review
+        </div>
+        <div style={{ fontSize: 15, lineHeight: 1.55, color: '#4f675f' }}>
+          Live cursors, approvals, and host-owned persistence.
+        </div>
       </div>
 
       {[
-        { name: 'Ripley', color: '#98dbc6', animation: 'collab-cursor-a 5.6s ease-in-out infinite' },
+        {
+          name: 'Ripley',
+          color: '#98dbc6',
+          animation: 'collab-cursor-a 5.6s ease-in-out infinite',
+        },
         { name: 'Spock', color: '#8fc7ff', animation: 'collab-cursor-b 5s ease-in-out infinite' },
-      ].map(member => (
+      ].map((member) => (
         <div
           key={member.name}
           style={{
@@ -322,7 +359,9 @@ function CollaborationFrame() {
   )
 }
 
-export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => void }) {
+type LandingPageProps = { onEnterEditor: () => void }
+
+const LandingPage: FunctionComponent<LandingPageProps> = ({ onEnterEditor }) => {
   return (
     <div
       className={css({
@@ -358,8 +397,16 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
           })}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <img src="/thot_dark_icon_transparency.svg" alt="Thot Editor" style={{ height: 26, width: 'auto' }} />
-            <span style={{ fontSize: 16, color: '#1a1a18', fontWeight: 800, letterSpacing: '-0.02em' }}>Thot Editor</span>
+            <img
+              src="/thot_dark_icon_transparency.svg"
+              alt="Thot Editor"
+              style={{ height: 26, width: 'auto' }}
+            />
+            <span
+              style={{ fontSize: 16, color: '#1a1a18', fontWeight: 800, letterSpacing: '-0.02em' }}
+            >
+              Thot Editor
+            </span>
             <span style={{ fontSize: 14, color: '#5f5e5a', fontWeight: 600 }}>v0.3.1</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -459,7 +506,10 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
                 margin: '0 0 28px',
               })}
             >
-              Thot Editor is a visual workspace for architecture maps, product thinking, system sketches and structured notes. Build connected diagrams, format math equations, import or export graph data as JSON, and keep everything editable on an infinite canvas with a simple UI.
+              Thot Editor is a visual workspace for architecture maps, product thinking, system
+              sketches and structured notes. Build connected diagrams, format math equations, import
+              or export graph data as JSON, and keep everything editable on an infinite canvas with
+              a simple UI.
             </p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 34 }}>
               <button
@@ -506,7 +556,10 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
             >
               {[
                 ['Simple UX/UI', 'A focused interface built for thinking, not tool-hunting'],
-                ['Live collaboration', 'Invite collaborators, approve access, and track active cursors'],
+                [
+                  'Live collaboration',
+                  'Invite collaborators, approve access, and track active cursors',
+                ],
                 ['Math formatting', 'Write equations and notes together directly on the canvas'],
                 ['JSON friendly', 'Import and export graphs as JSON without friction'],
               ].map(([title, body]) => (
@@ -538,12 +591,22 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
           })}
         >
           <div style={{ maxWidth: 640, marginBottom: 26 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#7c5e47', marginBottom: 10 }}>Examples</div>
-            <h2 style={{ fontSize: 'clamp(34px, 5vw, 56px)', lineHeight: 1.02, margin: '0 0 12px', letterSpacing: '-0.04em' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#7c5e47', marginBottom: 10 }}>
+              Examples
+            </div>
+            <h2
+              style={{
+                fontSize: 'clamp(34px, 5vw, 56px)',
+                lineHeight: 1.02,
+                margin: '0 0 12px',
+                letterSpacing: '-0.04em',
+              }}
+            >
               Use Thot Editor for work that needs structure and speed.
             </h2>
             <p style={{ fontSize: 16, lineHeight: 1.65, color: '#5f5e5a', margin: 0 }}>
-              Present systems, map flows, explain local AI stacks, or prepare visual notes for a product review. The canvas stays fluid, but the output stays clean.
+              Present systems, map flows, explain local AI stacks, or prepare visual notes for a
+              product review. The canvas stays fluid, but the output stays clean.
             </p>
           </div>
 
@@ -561,12 +624,31 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
           })}
         >
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#7c5e47', marginBottom: 10 }}>Collaboration</div>
-            <h2 style={{ fontSize: 'clamp(34px, 5vw, 56px)', lineHeight: 1.02, margin: '0 0 14px', letterSpacing: '-0.04em' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#7c5e47', marginBottom: 10 }}>
+              Collaboration
+            </div>
+            <h2
+              style={{
+                fontSize: 'clamp(34px, 5vw, 56px)',
+                lineHeight: 1.02,
+                margin: '0 0 14px',
+                letterSpacing: '-0.04em',
+              }}
+            >
               Review, edit and move together without losing ownership.
             </h2>
-            <p style={{ fontSize: 16, lineHeight: 1.7, color: '#5f5e5a', margin: '0 0 22px', maxWidth: 560 }}>
-              Thot Editor now supports live collaboration with host approval. Invite a collaborator through a magic link, accept the request, and watch active members move directly on the board with live cursor feedback.
+            <p
+              style={{
+                fontSize: 16,
+                lineHeight: 1.7,
+                color: '#5f5e5a',
+                margin: '0 0 22px',
+                maxWidth: 560,
+              }}
+            >
+              Thot Editor now supports live collaboration with host approval. Invite a collaborator
+              through a magic link, accept the request, and watch active members move directly on
+              the board with live cursor feedback.
             </p>
             <div style={{ display: 'grid', gap: 12, maxWidth: 560 }}>
               {[
@@ -574,7 +656,7 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
                 'Live cursor presence with distinct colors and member labels',
                 'Host-owned persistence so guest sessions stay temporary',
                 'Dedicated websocket server support for lighter, self-hosted rooms',
-              ].map(item => (
+              ].map((item) => (
                 <div
                   key={item}
                   className={css({
@@ -614,12 +696,31 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
               boxShadow: '0 28px 70px rgba(10,10,10,0.24)',
             })}
           >
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#b3afa8', marginBottom: 10 }}>Why it feels different</div>
-            <div style={{ fontSize: 36, lineHeight: 1.04, letterSpacing: '-0.04em', fontWeight: 800, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#b3afa8', marginBottom: 10 }}>
+              Why it feels different
+            </div>
+            <div
+              style={{
+                fontSize: 36,
+                lineHeight: 1.04,
+                letterSpacing: '-0.04em',
+                fontWeight: 800,
+                marginBottom: 16,
+              }}
+            >
               Built for thinking visually, not fighting UI.
             </div>
-            <div style={{ fontSize: 16, lineHeight: 1.72, color: 'rgba(245,243,238,0.72)', maxWidth: 560 }}>
-              Thot Editor combines diagramming, note-taking, math notation, JSON-friendly workflows and persistent local sessions in one surface. It stays lightweight, open source and practical for real technical work.
+            <div
+              style={{
+                fontSize: 16,
+                lineHeight: 1.72,
+                color: 'rgba(245,243,238,0.72)',
+                maxWidth: 560,
+              }}
+            >
+              Thot Editor combines diagramming, note-taking, math notation, JSON-friendly workflows
+              and persistent local sessions in one surface. It stays lightweight, open source and
+              practical for real technical work.
             </div>
           </div>
 
@@ -631,7 +732,9 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
               padding: '30px',
             })}
           >
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#7c5e47', marginBottom: 10 }}>Core features</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#7c5e47', marginBottom: 10 }}>
+              Core features
+            </div>
             <div style={{ display: 'grid', gap: 12 }}>
               {[
                 'Simple UX/UI with a focused canvas and fast editing flow',
@@ -640,7 +743,7 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
                 'JSON-friendly import/export for graph configuration and automation',
                 'Infinite workspace with pan, zoom and free/static positioning',
                 'Free and open source, with local-first persistence and exports',
-              ].map(item => (
+              ].map((item) => (
                 <div
                   key={item}
                   className={css({
@@ -680,11 +783,27 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
             })}
           >
             <div>
-              <div style={{ fontSize: 40, lineHeight: 1.02, letterSpacing: '-0.04em', fontWeight: 800, marginBottom: 12 }}>
+              <div
+                style={{
+                  fontSize: 40,
+                  lineHeight: 1.02,
+                  letterSpacing: '-0.04em',
+                  fontWeight: 800,
+                  marginBottom: 12,
+                }}
+              >
                 Open Thot Editor and start mapping.
               </div>
-              <div style={{ fontSize: 16, lineHeight: 1.65, color: 'rgba(245,243,238,0.72)', maxWidth: 640 }}>
-                Create boxes, connect ideas, format equations, move between JSON and graph views, export clean visuals, and come back later with the same workspace still there.
+              <div
+                style={{
+                  fontSize: 16,
+                  lineHeight: 1.65,
+                  color: 'rgba(245,243,238,0.72)',
+                  maxWidth: 640,
+                }}
+              >
+                Create boxes, connect ideas, format equations, move between JSON and graph views,
+                export clean visuals, and come back later with the same workspace still there.
               </div>
             </div>
             <button
@@ -709,3 +828,5 @@ export default function LandingPage({ onEnterEditor }: { onEnterEditor: () => vo
     </div>
   )
 }
+
+export default LandingPage

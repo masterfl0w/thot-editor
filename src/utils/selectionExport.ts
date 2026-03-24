@@ -48,7 +48,7 @@ function getSelectedContent(state: DiagramStateSnapshot): SelectionContent {
   const edgeIndices = new Set<number>()
 
   if (state.multiSel.size > 0) {
-    state.multiSel.forEach(id => {
+    state.multiSel.forEach((id) => {
       if (state.nodes[id]) nodeIds.add(id)
       if (state.texts[id]) textIds.add(id)
     })
@@ -70,7 +70,7 @@ function getSelectedContent(state: DiagramStateSnapshot): SelectionContent {
     }
   }
 
-  const filteredNodeIds = [...nodeIds].filter(id => {
+  const filteredNodeIds = [...nodeIds].filter((id) => {
     let parent = state.nodes[id]?.parent
     while (parent) {
       if (nodeIds.has(parent)) return false
@@ -86,13 +86,13 @@ function getSelectionElements(state: DiagramStateSnapshot) {
   const { nodeIds, textIds, edgeIndices } = getSelectedContent(state)
 
   const nodeEls = nodeIds
-    .map(id => document.getElementById(`nd-${id}`))
+    .map((id) => document.getElementById(`nd-${id}`))
     .filter((el): el is HTMLElement => el instanceof HTMLElement)
   const textEls = textIds
-    .map(id => document.getElementById(`tn-${id}`))
+    .map((id) => document.getElementById(`tn-${id}`))
     .filter((el): el is HTMLElement => el instanceof HTMLElement)
   const edgeEls = edgeIndices
-    .map(index => document.querySelector(`[data-edge-index="${index}"]`))
+    .map((index) => document.querySelector(`[data-edge-index="${index}"]`))
     .filter((el): el is SVGGElement => el instanceof SVGGElement)
 
   const contentEls: Element[] = [...nodeEls, ...textEls, ...edgeEls]
@@ -102,11 +102,11 @@ function getSelectionElements(state: DiagramStateSnapshot) {
 
 function getWorkspaceElements(state: DiagramStateSnapshot) {
   const nodeEls = Object.keys(state.nodes)
-    .filter(id => !state.nodes[id].parent)
-    .map(id => document.getElementById(`nd-${id}`))
+    .filter((id) => !state.nodes[id].parent)
+    .map((id) => document.getElementById(`nd-${id}`))
     .filter((el): el is HTMLElement => el instanceof HTMLElement)
   const textEls = Object.keys(state.texts)
-    .map(id => document.getElementById(`tn-${id}`))
+    .map((id) => document.getElementById(`tn-${id}`))
     .filter((el): el is HTMLElement => el instanceof HTMLElement)
   const edgeEls = state.edges
     .map((_, index) => document.querySelector(`[data-edge-index="${index}"]`))
@@ -116,7 +116,11 @@ function getWorkspaceElements(state: DiagramStateSnapshot) {
   return contentEls
 }
 
-function getBounds(state: DiagramStateSnapshot, canvas: HTMLElement, scope: ExportScope): SelectionBounds {
+function getBounds(
+  state: DiagramStateSnapshot,
+  canvas: HTMLElement,
+  scope: ExportScope,
+): SelectionBounds {
   const elements = scope === 'workspace' ? getWorkspaceElements(state) : getSelectionElements(state)
   const canvasRect = canvas.getBoundingClientRect()
 
@@ -125,7 +129,7 @@ function getBounds(state: DiagramStateSnapshot, canvas: HTMLElement, scope: Expo
   let maxRight = Number.NEGATIVE_INFINITY
   let maxBottom = Number.NEGATIVE_INFINITY
 
-  elements.forEach(el => {
+  elements.forEach((el) => {
     const rect = el.getBoundingClientRect()
     if (rect.width <= 0 && rect.height <= 0) return
     minLeft = Math.min(minLeft, rect.left - canvasRect.left)
@@ -134,15 +138,27 @@ function getBounds(state: DiagramStateSnapshot, canvas: HTMLElement, scope: Expo
     maxBottom = Math.max(maxBottom, rect.bottom - canvasRect.top)
   })
 
-  if (!Number.isFinite(minLeft) || !Number.isFinite(minTop) || !Number.isFinite(maxRight) || !Number.isFinite(maxBottom)) {
+  if (
+    !Number.isFinite(minLeft) ||
+    !Number.isFinite(minTop) ||
+    !Number.isFinite(maxRight) ||
+    !Number.isFinite(maxBottom)
+  ) {
     throw new Error('Unable to export content')
   }
 
   return {
     left: Math.max(0, minLeft - EXPORT_PADDING),
     top: Math.max(0, minTop - EXPORT_PADDING),
-    width: Math.max(1, Math.min(canvasRect.width, maxRight + EXPORT_PADDING) - Math.max(0, minLeft - EXPORT_PADDING)),
-    height: Math.max(1, Math.min(canvasRect.height, maxBottom + EXPORT_PADDING) - Math.max(0, minTop - EXPORT_PADDING)),
+    width: Math.max(
+      1,
+      Math.min(canvasRect.width, maxRight + EXPORT_PADDING) - Math.max(0, minLeft - EXPORT_PADDING),
+    ),
+    height: Math.max(
+      1,
+      Math.min(canvasRect.height, maxBottom + EXPORT_PADDING) -
+        Math.max(0, minTop - EXPORT_PADDING),
+    ),
   }
 }
 
@@ -150,7 +166,7 @@ function hideSelectionDecorations(state: DiagramStateSnapshot) {
   const hidden: Array<{ el: HTMLElement; display: string }> = []
   const mutated: Array<{ el: HTMLElement; prop: keyof CSSStyleDeclaration; value: string }> = []
 
-  document.querySelectorAll<HTMLElement>('.ports, .selection-badge').forEach(el => {
+  document.querySelectorAll<HTMLElement>('.ports, .selection-badge').forEach((el) => {
     hidden.push({ el, display: el.style.display })
     el.style.display = 'none'
   })
@@ -161,7 +177,7 @@ function hideSelectionDecorations(state: DiagramStateSnapshot) {
     canvas.style.background = 'transparent'
   }
 
-  document.querySelectorAll<HTMLCanvasElement>('[data-canvas-root="true"] canvas').forEach(el => {
+  document.querySelectorAll<HTMLCanvasElement>('[data-canvas-root="true"] canvas').forEach((el) => {
     hidden.push({ el, display: el.style.display })
     el.style.display = 'none'
   })
@@ -172,7 +188,7 @@ function hideSelectionDecorations(state: DiagramStateSnapshot) {
     ;(el.style[prop] as string) = value
   }
 
-  Object.keys(state.nodes).forEach(id => {
+  Object.keys(state.nodes).forEach((id) => {
     const el = document.getElementById(`nd-${id}`) as HTMLElement | null
     if (!el) return
     const node = state.nodes[id]
@@ -184,7 +200,7 @@ function hideSelectionDecorations(state: DiagramStateSnapshot) {
     setStyle(el, 'borderColor', node.parent ? 'rgba(255,255,255,0.25)' : 'transparent')
   })
 
-  Object.keys(state.texts).forEach(id => {
+  Object.keys(state.texts).forEach((id) => {
     const el = document.getElementById(`tn-${id}`) as HTMLElement | null
     if (!el) return
     setStyle(el, 'transition', 'none')
@@ -196,8 +212,11 @@ function hideSelectionDecorations(state: DiagramStateSnapshot) {
 
   if (state.selEdge !== null) {
     const edgeGroup = document.querySelector(`[data-edge-index="${state.selEdge}"]`)
-    edgeGroup?.querySelectorAll<SVGPathElement>('path').forEach(path => {
-      if (path.getAttribute('stroke') === '#6c6cff' && path.getAttribute('stroke-opacity') === '0.25') {
+    edgeGroup?.querySelectorAll<SVGPathElement>('path').forEach((path) => {
+      if (
+        path.getAttribute('stroke') === '#6c6cff' &&
+        path.getAttribute('stroke-opacity') === '0.25'
+      ) {
         const el = path as unknown as HTMLElement
         mutated.push({ el, prop: 'display', value: el.style.display })
         el.style.display = 'none'
@@ -216,8 +235,8 @@ function hideSelectionDecorations(state: DiagramStateSnapshot) {
 }
 
 async function waitForPaint() {
-  await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
-  await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
 }
 
 async function renderArea(state: DiagramStateSnapshot, scope: ExportScope) {
@@ -298,7 +317,10 @@ export async function copySelectionAsSvg(state: DiagramStateSnapshot) {
 export async function copySelectionAsPng(state: DiagramStateSnapshot) {
   const { canvas } = await renderArea(state, 'selection')
   const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(nextBlob => (nextBlob ? resolve(nextBlob) : reject(new Error('Unable to encode PNG'))), 'image/png')
+    canvas.toBlob(
+      (nextBlob) => (nextBlob ? resolve(nextBlob) : reject(new Error('Unable to encode PNG'))),
+      'image/png',
+    )
   })
   await copyBlobToClipboard(blob, 'image/png')
 }
@@ -315,7 +337,10 @@ export async function saveWorkspaceAsSvg(state: DiagramStateSnapshot) {
 export async function saveWorkspaceAsPng(state: DiagramStateSnapshot) {
   const { canvas } = await renderArea(state, 'workspace')
   const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(nextBlob => (nextBlob ? resolve(nextBlob) : reject(new Error('Unable to encode PNG'))), 'image/png')
+    canvas.toBlob(
+      (nextBlob) => (nextBlob ? resolve(nextBlob) : reject(new Error('Unable to encode PNG'))),
+      'image/png',
+    )
   })
   downloadBlob(blob, 'thot-workspace.png')
 }

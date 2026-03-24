@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { FunctionComponent, RefObject } from 'react'
 import { useDiagram } from '../store/diagramStore'
 import type { PortSide } from '../types'
 import MathText from './MathText'
@@ -20,8 +21,24 @@ function insetEdgePoints(pts: EdgeEndpoints, startInset: number, endInset: numbe
   }
 }
 
-export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElement | null> }) {
-  const { edges, nodes, selEdge, selectEdge, cmode, csrc, csrcSide, pointer, viewport, zoom, theme } = useDiagram()
+type EdgeLayerProps = {
+  canvasRef: RefObject<HTMLDivElement | null>
+}
+
+const EdgeLayer: FunctionComponent<EdgeLayerProps> = ({ canvasRef }) => {
+  const {
+    edges,
+    nodes,
+    selEdge,
+    selectEdge,
+    cmode,
+    csrc,
+    csrcSide,
+    pointer,
+    viewport,
+    zoom,
+    theme,
+  } = useDiagram()
   const [tooltip, setTooltip] = useState<TooltipState>(null)
   const isDark = theme === 'dark'
 
@@ -36,13 +53,15 @@ export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HT
     if (!el || !cw) return null
     const r = el.getBoundingClientRect()
     const wr = cw.getBoundingClientRect()
-    return screenToWorld(
-      r.left - wr.left + r.width / 2,
-      r.top - wr.top + r.height / 2,
-    )
+    return screenToWorld(r.left - wr.left + r.width / 2, r.top - wr.top + r.height / 2)
   }
 
-  const edgePts = (fid: string, tid: string, fromSide?: PortSide, toSide?: PortSide): EdgeEndpoints | null => {
+  const edgePts = (
+    fid: string,
+    tid: string,
+    fromSide?: PortSide,
+    toSide?: PortSide,
+  ): EdgeEndpoints | null => {
     if (fromSide && toSide) {
       const s = getPortPoint(fid, fromSide)
       const e = getPortPoint(tid, toSide)
@@ -74,19 +93,21 @@ export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HT
       cx: bTopLeft.x + br.width / (2 * zoom),
       cy: bTopLeft.y + br.height / (2 * zoom),
     }
-    const dx = b.cx - a.cx, dy = b.cy - a.cy
-    const m = Math.abs(dy / (dx || 0.001)), mb = a.h / (a.w || 1)
+    const dx = b.cx - a.cx,
+      dy = b.cy - a.cy
+    const m = Math.abs(dy / (dx || 0.001)),
+      mb = a.h / (a.w || 1)
     let sx, sy, ex, ey
     if (m < mb) {
       sx = a.cx + (dx > 0 ? a.w / 2 : -a.w / 2)
-      sy = a.cy + dy * (a.w / 2) / (Math.abs(dx) || 1)
+      sy = a.cy + (dy * (a.w / 2)) / (Math.abs(dx) || 1)
       ex = b.cx + (dx > 0 ? -b.w / 2 : b.w / 2)
-      ey = b.cy - dy * (b.w / 2) / (Math.abs(dx) || 1)
+      ey = b.cy - (dy * (b.w / 2)) / (Math.abs(dx) || 1)
     } else {
       sy = a.cy + (dy > 0 ? a.h / 2 : -a.h / 2)
-      sx = a.cx + dx * (a.h / 2) / (Math.abs(dy) || 1)
+      sx = a.cx + (dx * (a.h / 2)) / (Math.abs(dy) || 1)
       ey = b.cy + (dy > 0 ? -b.h / 2 : b.h / 2)
-      ex = b.cx - dx * (b.h / 2) / (Math.abs(dy) || 1)
+      ex = b.cx - (dx * (b.h / 2)) / (Math.abs(dy) || 1)
     }
     return { sx, sy, ex, ey }
   }
@@ -141,14 +162,51 @@ export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HT
   return (
     <>
       <svg
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none' }}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          overflow: 'visible',
+          pointerEvents: 'none',
+        }}
       >
         <defs>
-          <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <marker
+            id="arr"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path
+              d="M2 1L8 5L2 9"
+              fill="none"
+              stroke="context-stroke"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </marker>
-          <marker id="arr2" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-            <path d="M8 1L2 5L8 9" fill="none" stroke="context-stroke" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <marker
+            id="arr2"
+            viewBox="0 0 10 10"
+            refX="2"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto"
+          >
+            <path
+              d="M8 1L2 5L8 9"
+              fill="none"
+              stroke="context-stroke"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </marker>
         </defs>
         {edges.map((edge, idx) => {
@@ -157,30 +215,47 @@ export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HT
           if (!p) return null
           const insetStart = edge.arrow === 'both' ? 7 : 0
           const insetEnd = edge.arrow !== 'none' ? 8 : 0
-          const shape = edgeShape(insetEdgePoints(p, insetStart, insetEnd), edge.route ?? 'straight', edge.bend ?? 0)
+          const shape = edgeShape(
+            insetEdgePoints(p, insetStart, insetEnd),
+            edge.route ?? 'straight',
+            edge.bend ?? 0,
+          )
           const isSel = idx === selEdge
-          const c = isSel ? '#6c6cff' : (edge.color || '#888780')
+          const c = isSel ? '#6c6cff' : edge.color || '#888780'
           const dash = edge.style === 'dashed' ? '8 5' : edge.style === 'dotted' ? '2 4' : undefined
           const lw = edge.label ? edge.label.length * 6.5 + 14 : 0
 
           return (
             <g key={idx} className="eg" data-edge-index={idx}>
               {isSel && (
-                <path d={shape.path}
-                  stroke="#6c6cff" strokeWidth="8" strokeOpacity="0.25" fill="none" />
+                <path
+                  d={shape.path}
+                  stroke="#6c6cff"
+                  strokeWidth="8"
+                  strokeOpacity="0.25"
+                  fill="none"
+                />
               )}
-              <path d={shape.path}
-                stroke={c} strokeWidth={isSel ? 2.5 : 1.5} fill="none"
+              <path
+                d={shape.path}
+                stroke={c}
+                strokeWidth={isSel ? 2.5 : 1.5}
+                fill="none"
                 strokeDasharray={dash}
                 markerEnd={edge.arrow !== 'none' ? 'url(#arr)' : undefined}
                 markerStart={edge.arrow === 'both' ? 'url(#arr2)' : undefined}
               />
               {/* Invisible hit area */}
-              <path d={shape.path}
-                stroke="transparent" strokeWidth="16"
+              <path
+                d={shape.path}
+                stroke="transparent"
+                strokeWidth="16"
                 fill="none"
                 style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
-                onClick={(e) => { e.stopPropagation(); selectEdge(idx) }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  selectEdge(idx)
+                }}
                 onMouseLeave={() => setTooltip(null)}
                 onMouseMove={(e) => {
                   if (edge.desc) {
@@ -200,10 +275,28 @@ export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HT
               />
               {edge.label && (
                 <>
-                  <rect x={shape.labelX - lw / 2} y={shape.labelY - 11} width={lw} height={22} rx={6}
-                    fill={bgRect} stroke={isSel ? '#6c6cff' : c} strokeWidth="0.5" />
-                  <text x={shape.labelX} y={shape.labelY} textAnchor="middle" dominantBaseline="middle"
-                    style={{ fontSize: 11, fill: textFill, fontFamily: 'system-ui,sans-serif', pointerEvents: 'none' }}>
+                  <rect
+                    x={shape.labelX - lw / 2}
+                    y={shape.labelY - 11}
+                    width={lw}
+                    height={22}
+                    rx={6}
+                    fill={bgRect}
+                    stroke={isSel ? '#6c6cff' : c}
+                    strokeWidth="0.5"
+                  />
+                  <text
+                    x={shape.labelX}
+                    y={shape.labelY}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    style={{
+                      fontSize: 11,
+                      fill: textFill,
+                      fontFamily: 'system-ui,sans-serif',
+                      pointerEvents: 'none',
+                    }}
+                  >
                     {edge.label}
                   </text>
                 </>
@@ -211,41 +304,53 @@ export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HT
             </g>
           )
         })}
-        {cmode && csrc && csrcSide && pointer && (() => {
-          const src = getPortPoint(csrc, csrcSide)
-          if (!src) return null
-          const preview = edgeShape({ sx: src.x, sy: src.y, ex: pointer.x, ey: pointer.y }, 'straight', 0)
-          return (
-            <path
-              d={preview.path}
-              stroke="#6c6cff"
-              strokeWidth="2"
-              strokeDasharray="6 4"
-              fill="none"
-              opacity="0.9"
-              markerEnd="url(#arr)"
-            />
-          )
-        })()}
+        {cmode &&
+          csrc &&
+          csrcSide &&
+          pointer &&
+          (() => {
+            const src = getPortPoint(csrc, csrcSide)
+            if (!src) return null
+            const preview = edgeShape(
+              { sx: src.x, sy: src.y, ex: pointer.x, ey: pointer.y },
+              'straight',
+              0,
+            )
+            return (
+              <path
+                d={preview.path}
+                stroke="#6c6cff"
+                strokeWidth="2"
+                strokeDasharray="6 4"
+                fill="none"
+                opacity="0.9"
+                markerEnd="url(#arr)"
+              />
+            )
+          })()}
       </svg>
 
       {tooltip && (
-        <div style={{
-          position: 'absolute',
-          left: tooltip.x,
-          top: tooltip.y,
-          background: isDark ? '#2c2c2a' : '#fff',
-          border: `0.5px solid ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'}`,
-          borderRadius: 8,
-          padding: '7px 10px',
-          fontSize: 11,
-          maxWidth: 200,
-          pointerEvents: 'none',
-          boxShadow: '0 3px 12px rgba(0,0,0,0.1)',
-          zIndex: 100,
-          color: isDark ? '#f5f3ee' : '#1a1a18',
-        }}>
-          <strong style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>{tooltip.label || 'Link'}</strong>
+        <div
+          style={{
+            position: 'absolute',
+            left: tooltip.x,
+            top: tooltip.y,
+            background: isDark ? '#2c2c2a' : '#fff',
+            border: `0.5px solid ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'}`,
+            borderRadius: 8,
+            padding: '7px 10px',
+            fontSize: 11,
+            maxWidth: 200,
+            pointerEvents: 'none',
+            boxShadow: '0 3px 12px rgba(0,0,0,0.1)',
+            zIndex: 100,
+            color: isDark ? '#f5f3ee' : '#1a1a18',
+          }}
+        >
+          <strong style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>
+            {tooltip.label || 'Link'}
+          </strong>
           <div style={{ color: '#888780', fontSize: 11 }}>
             <MathText content={tooltip.desc} />
           </div>
@@ -254,3 +359,5 @@ export default function EdgeLayer({ canvasRef }: { canvasRef: React.RefObject<HT
     </>
   )
 }
+
+export default EdgeLayer

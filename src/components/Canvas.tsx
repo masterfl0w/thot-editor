@@ -1,12 +1,13 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
+import type { FunctionComponent, RefObject } from 'react'
 import { useDiagram } from '../store/diagramStore'
 import DiagramNode from './DiagramNode'
 import TextNode from './TextNode'
 import EdgeLayer from './EdgeLayer'
 
 function useGrid(
-  canvasRef: React.RefObject<HTMLDivElement | null>,
-  gridRef: React.RefObject<HTMLCanvasElement | null>,
+  canvasRef: RefObject<HTMLDivElement | null>,
+  gridRef: RefObject<HTMLCanvasElement | null>,
   viewport: { x: number; y: number },
   zoom: number,
   theme: 'light' | 'dark',
@@ -15,7 +16,8 @@ function useGrid(
     const gc = gridRef.current?.getContext('2d')
     const cw = canvasRef.current
     if (!gc || !cw) return
-    const W = cw.offsetWidth, H = cw.offsetHeight
+    const W = cw.offsetWidth,
+      H = cw.offsetHeight
     gridRef.current!.width = W
     gridRef.current!.height = H
     gc.clearRect(0, 0, W, H)
@@ -26,7 +28,9 @@ function useGrid(
     const startY = ((-(viewport.y * zoom) % step) + step) % step
     for (let x = startX; x < W; x += step)
       for (let y = startY; y < H; y += step) {
-        gc.beginPath(); gc.arc(x, y, 1, 0, Math.PI * 2); gc.fill()
+        gc.beginPath()
+        gc.arc(x, y, 1, 0, Math.PI * 2)
+        gc.fill()
       }
   }, [canvasRef, gridRef, viewport.x, viewport.y, zoom, theme])
 
@@ -39,7 +43,7 @@ function useGrid(
   }, [draw])
 }
 
-export default function Canvas() {
+const Canvas: FunctionComponent = () => {
   const {
     nodes,
     texts,
@@ -68,7 +72,9 @@ export default function Canvas() {
 
   // Lasso
   const lassoRef = useRef({ active: false, x0: 0, y0: 0 })
-  const [lassoRect, setLassoRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+  const [lassoRect, setLassoRect] = useState<{ x: number; y: number; w: number; h: number } | null>(
+    null,
+  )
   const panRef = useRef({ active: false, startX: 0, startY: 0, vx: 0, vy: 0, moved: false })
 
   const onCanvasMouseDown = (e: React.MouseEvent) => {
@@ -79,41 +85,61 @@ export default function Canvas() {
       !!target.closest('#esvg-root') ||
       !!target.closest('[data-workspace="true"]')
     if (!isCanvas) return
-    if (cmode) { cancelConnect(); return }
-    if (editingTextId) { finishEditText(editingTextId); return }
+    if (cmode) {
+      cancelConnect()
+      return
+    }
+    if (editingTextId) {
+      finishEditText(editingTextId)
+      return
+    }
 
     const wr = cwRef.current!.getBoundingClientRect()
-    const x0 = e.clientX - wr.left, y0 = e.clientY - wr.top
+    const x0 = e.clientX - wr.left,
+      y0 = e.clientY - wr.top
     if (interactionMode === 'select') {
       lassoRef.current = { active: true, x0, y0 }
       setLassoRect({ x: x0, y: y0, w: 0, h: 0 })
       deselectAll()
     } else {
-      panRef.current = { active: true, startX: e.clientX, startY: e.clientY, vx: viewport.x, vy: viewport.y, moved: false }
+      panRef.current = {
+        active: true,
+        startX: e.clientX,
+        startY: e.clientY,
+        vx: viewport.x,
+        vy: viewport.y,
+        moved: false,
+      }
       setIsPanning(true)
     }
 
     const onMove = (me: MouseEvent) => {
       if (lassoRef.current.active) {
-        const cx = me.clientX - wr.left, cy = me.clientY - wr.top
-        const x = Math.min(cx, x0), y = Math.min(cy, y0), w = Math.abs(cx - x0), h = Math.abs(cy - y0)
+        const cx = me.clientX - wr.left,
+          cy = me.clientY - wr.top
+        const x = Math.min(cx, x0),
+          y = Math.min(cy, y0),
+          w = Math.abs(cx - x0),
+          h = Math.abs(cy - y0)
         setLassoRect({ x, y, w, h })
         if (w > 4 || h > 4) {
           const { nodes: allNodes, texts: allTexts } = useDiagram.getState()
           const sel = new Set<string>()
-          Object.values(allNodes).forEach(n => {
+          Object.values(allNodes).forEach((n) => {
             if (n.parent) return
             const el = document.getElementById('nd-' + n.id)
             if (!el) return
             const r = el.getBoundingClientRect()
-            const nx = r.left - wr.left, ny = r.top - wr.top
+            const nx = r.left - wr.left,
+              ny = r.top - wr.top
             if (nx < x + w && nx + r.width > x && ny < y + h && ny + r.height > y) sel.add(n.id)
           })
-          Object.values(allTexts).forEach(t => {
+          Object.values(allTexts).forEach((t) => {
             const el = document.getElementById('tn-' + t.id)
             if (!el) return
             const r = el.getBoundingClientRect()
-            const tx = r.left - wr.left, ty = r.top - wr.top
+            const tx = r.left - wr.left,
+              ty = r.top - wr.top
             if (tx < x + w && tx + r.width > x && ty < y + h && ty + r.height > y) sel.add(t.id)
           })
           if (sel.size > 0) setMultiSel(sel)
@@ -195,7 +221,9 @@ export default function Canvas() {
   }
 
   const isDark = theme === 'dark'
-  const remoteParticipants = collaboration.participants.filter(participant => !participant.self && participant.pointer)
+  const remoteParticipants = collaboration.participants.filter(
+    (participant) => !participant.self && participant.pointer,
+  )
 
   return (
     <div
@@ -235,31 +263,37 @@ export default function Canvas() {
         </div>
 
         {/* Nodes */}
-        {Object.values(nodes).filter(n => !n.parent).map(n => (
-          <DiagramNode key={n.id} node={n} canvasRef={cwRef} viewport={viewport} zoom={zoom} />
-        ))}
+        {Object.values(nodes)
+          .filter((n) => !n.parent)
+          .map((n) => (
+            <DiagramNode key={n.id} node={n} canvasRef={cwRef} viewport={viewport} zoom={zoom} />
+          ))}
 
         {/* Text nodes */}
-        {Object.values(texts).map(t => (
+        {Object.values(texts).map((t) => (
           <TextNode key={t.id} text={t} canvasRef={cwRef} viewport={viewport} zoom={zoom} />
         ))}
       </div>
 
       {/* Lasso rect */}
       {lassoRect && lassoRect.w > 0 && (
-        <div style={{
-          position: 'absolute',
-          left: lassoRect.x, top: lassoRect.y,
-          width: lassoRect.w, height: lassoRect.h,
-          border: '1.5px solid #6c6cff',
-          background: 'rgba(108,108,255,0.07)',
-          borderRadius: 2,
-          pointerEvents: 'none',
-          zIndex: 50,
-        }} />
+        <div
+          style={{
+            position: 'absolute',
+            left: lassoRect.x,
+            top: lassoRect.y,
+            width: lassoRect.w,
+            height: lassoRect.h,
+            border: '1.5px solid #6c6cff',
+            background: 'rgba(108,108,255,0.07)',
+            borderRadius: 2,
+            pointerEvents: 'none',
+            zIndex: 50,
+          }}
+        />
       )}
 
-      {remoteParticipants.map(participant => {
+      {remoteParticipants.map((participant) => {
         if (!participant.pointer) return null
         const left = (participant.pointer.x - viewport.x) * zoom
         const top = (participant.pointer.y - viewport.y) * zoom
@@ -319,23 +353,27 @@ export default function Canvas() {
       })}
 
       {/* Version bar */}
-      <div style={{
-        position: 'absolute',
-        bottom: 10,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        background: isDark ? '#2c2c2a' : '#fff',
-        border: `0.5px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.12)'}`,
-        borderRadius: 20,
-        padding: '4px 14px',
-        fontSize: 11,
-        color: isDark ? '#9c9a92' : '#5f5e5a',
-        pointerEvents: 'none',
-        whiteSpace: 'nowrap',
-        opacity: 0.85,
-      }}>
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 10,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: isDark ? '#2c2c2a' : '#fff',
+          border: `0.5px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.12)'}`,
+          borderRadius: 20,
+          padding: '4px 14px',
+          fontSize: 11,
+          color: isDark ? '#9c9a92' : '#5f5e5a',
+          pointerEvents: 'none',
+          whiteSpace: 'nowrap',
+          opacity: 0.85,
+        }}
+      >
         v0.3.1
       </div>
     </div>
   )
 }
+
+export default Canvas

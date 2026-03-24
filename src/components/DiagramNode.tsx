@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState } from 'react'
+import type { FunctionComponent, RefObject } from 'react'
 import { autoBorder, useDiagram } from '../store/diagramStore'
 import type { DiagramNode as DiagramNodeType, PortSide } from '../types'
 import MathText from './MathText'
@@ -7,16 +8,28 @@ const THRESH = 6
 
 interface Props {
   node: DiagramNodeType
-  canvasRef: React.RefObject<HTMLDivElement | null>
+  canvasRef: RefObject<HTMLDivElement | null>
   viewport: { x: number; y: number }
   zoom: number
 }
 
-export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) {
+const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom }) => {
   const {
-    selectNode, toggleMultiSel, selNode, csrc, csrcSide, multiSel, cmode,
-    attachChild, detachNode, addEdge, cancelConnect,
-    setCtxTarget, setNodePosition, commitWorkspaceSnapshot, captureWorkspaceSnapshot,
+    selectNode,
+    toggleMultiSel,
+    selNode,
+    csrc,
+    csrcSide,
+    multiSel,
+    cmode,
+    attachChild,
+    detachNode,
+    addEdge,
+    cancelConnect,
+    setCtxTarget,
+    setNodePosition,
+    commitWorkspaceSnapshot,
+    captureWorkspaceSnapshot,
   } = useDiagram()
 
   const isChild = !!node.parent
@@ -26,7 +39,12 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
   const isMultiSel = multiSel.has(node.id) && !isSelected
 
   const dragRef = useRef({ active: false, startX: 0, startY: 0, moved: false, ox: 0, oy: 0 })
-  const multiDragRef = useRef({ active: false, startX: 0, startY: 0, origins: {} as Record<string, {x:number,y:number}> })
+  const multiDragRef = useRef({
+    active: false,
+    startX: 0,
+    startY: 0,
+    origins: {} as Record<string, { x: number; y: number }>,
+  })
   const dragOverRef = useRef<string | null>(null)
   const nodeRef = useRef<HTMLDivElement>(null)
   const [isHovering, setIsHovering] = useState(false)
@@ -35,7 +53,7 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
     const allNodes = useDiagram.getState().nodes
     let best: string | null = null
     let bestArea = Infinity
-    Object.values(allNodes).forEach(n => {
+    Object.values(allNodes).forEach((n) => {
       if (n.id === excl || n.parent) return
       if (isDescendant(n.id, excl, allNodes)) return
       const el = document.getElementById('nd-' + n.id)
@@ -43,7 +61,10 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
       const r = el.getBoundingClientRect()
       if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) {
         const a = r.width * r.height
-        if (a < bestArea) { bestArea = a; best = n.id }
+        if (a < bestArea) {
+          bestArea = a
+          best = n.id
+        }
       }
     })
     return best
@@ -57,8 +78,8 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
     // Multi-drag
     if (multiSel.has(node.id) && multiSel.size > 1 && !isChild) {
       const { nodes: allNodes, texts: allTexts } = useDiagram.getState()
-      const origins: Record<string, {x:number, y:number}> = {}
-      multiSel.forEach(id => {
+      const origins: Record<string, { x: number; y: number }> = {}
+      multiSel.forEach((id) => {
         if (allNodes[id]) origins[id] = { x: allNodes[id].x, y: allNodes[id].y }
         else if (allTexts[id]) origins[id] = { x: allTexts[id].x, y: allTexts[id].y }
       })
@@ -68,7 +89,7 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
         const { setNodePosition, setTextPosition } = useDiagram.getState()
         const dx = (me.clientX - multiDragRef.current.startX) / zoom
         const dy = (me.clientY - multiDragRef.current.startY) / zoom
-        multiSel.forEach(id => {
+        multiSel.forEach((id) => {
           const o = multiDragRef.current.origins[id]
           if (!o) return
           const { nodes: n2, texts: t2 } = useDiagram.getState()
@@ -87,7 +108,14 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
       return
     }
 
-    dragRef.current = { active: true, startX: e.clientX, startY: e.clientY, moved: false, ox: 0, oy: 0 }
+    dragRef.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      moved: false,
+      ox: 0,
+      oy: 0,
+    }
     const before = captureWorkspaceSnapshot()
 
     const onMove = (me: MouseEvent) => {
@@ -95,7 +123,7 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
       if (!d.active) return
       const dx = me.clientX - d.startX
       const dy = me.clientY - d.startY
-      if (!d.moved && Math.sqrt(dx*dx + dy*dy) < THRESH) return
+      if (!d.moved && Math.sqrt(dx * dx + dy * dy) < THRESH) return
       d.moved = true
       const cw = canvasRef.current
       if (!cw) return
@@ -109,7 +137,11 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
         const pel = document.getElementById('nd-' + cur.parent)
         if (pel) {
           const pr2 = pel.getBoundingClientRect()
-          const outside = me.clientX < pr2.left || me.clientX > pr2.right || me.clientY < pr2.top || me.clientY > pr2.bottom
+          const outside =
+            me.clientX < pr2.left ||
+            me.clientX > pr2.right ||
+            me.clientY < pr2.top ||
+            me.clientY > pr2.bottom
           if (!outside) return
           const nel = document.getElementById('nd-' + node.id)
           const nr = nel?.getBoundingClientRect()
@@ -125,7 +157,10 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
       if (!d.ox) {
         const el = document.getElementById('nd-' + node.id)
         const r = el?.getBoundingClientRect()
-        if (r) { d.ox = me.clientX - wr.left - (r.left - wr.left); d.oy = me.clientY - wr.top - (r.top - wr.top) }
+        if (r) {
+          d.ox = me.clientX - wr.left - (r.left - wr.left)
+          d.oy = me.clientY - wr.top - (r.top - wr.top)
+        }
       }
 
       const newX = viewport.x + (me.clientX - wr.left - d.ox) / zoom
@@ -258,13 +293,23 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
     return { right: -6, top: '50%', transform: 'translateY(-50%)' }
   }
   const ports = (
-    <div className="ports" style={{ opacity: showPorts ? 1 : 0, transition: 'opacity 0.15s', pointerEvents: 'none' }}>
-      {(['pt','pb','pl','pr'] as const).map(pos => {
+    <div
+      className="ports"
+      style={{ opacity: showPorts ? 1 : 0, transition: 'opacity 0.15s', pointerEvents: 'none' }}
+    >
+      {(['pt', 'pb', 'pl', 'pr'] as const).map((pos) => {
         const style: React.CSSProperties = {
-          width: 10, height: 10, background: csrc === node.id && csrcSide === pos ? '#22c57a' : '#6c6cff', borderRadius: '50%',
-          border: '2px solid #fff', position: 'absolute', cursor: 'crosshair',
-          zIndex: 20, transition: 'transform 0.1s', pointerEvents: 'all',
-          ...getPortPositionStyle(pos)
+          width: 10,
+          height: 10,
+          background: csrc === node.id && csrcSide === pos ? '#22c57a' : '#6c6cff',
+          borderRadius: '50%',
+          border: '2px solid #fff',
+          position: 'absolute',
+          cursor: 'crosshair',
+          zIndex: 20,
+          transition: 'transform 0.1s',
+          pointerEvents: 'all',
+          ...getPortPositionStyle(pos),
         }
         return (
           <div
@@ -281,7 +326,9 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
     </div>
   )
 
-  const textDecoration = [node.underline ? 'underline' : '', node.strike ? 'line-through' : ''].filter(Boolean).join(' ')
+  const textDecoration = [node.underline ? 'underline' : '', node.strike ? 'line-through' : '']
+    .filter(Boolean)
+    .join(' ')
   const isCircle = node.shape === 'circle'
   const isDiamond = node.shape === 'diamond'
   const isTriangle = node.shape === 'triangle'
@@ -349,8 +396,14 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
       >
         {selectionBadge}
         {ports}
-        <span style={titleTextStyle}><MathText content={node.title} align="center" /></span>
-        {node.desc && <span style={descTextStyle}><MathText content={node.desc} align="center" /></span>}
+        <span style={titleTextStyle}>
+          <MathText content={node.title} align="center" />
+        </span>
+        {node.desc && (
+          <span style={descTextStyle}>
+            <MathText content={node.desc} align="center" />
+          </span>
+        )}
       </div>
     )
   }
@@ -384,14 +437,41 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
       >
         {selectionBadge}
         {ports}
-        <div style={{ padding: '10px 14px 8px', cursor: 'move', textAlign: 'center' }} onMouseDown={handleMouseDown}>
-          <span style={{ ...titleTextStyle, display: 'block' }}><MathText content={node.title} align="center" /></span>
-          {node.desc && <span style={descTextStyle}><MathText content={node.desc} align="center" /></span>}
+        <div
+          style={{ padding: '10px 14px 8px', cursor: 'move', textAlign: 'center' }}
+          onMouseDown={handleMouseDown}
+        >
+          <span style={{ ...titleTextStyle, display: 'block' }}>
+            <MathText content={node.title} align="center" />
+          </span>
+          {node.desc && (
+            <span style={descTextStyle}>
+              <MathText content={node.desc} align="center" />
+            </span>
+          )}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', gap: 8, padding: '8px 10px 10px', alignItems: 'stretch', minHeight: 30 }}>
-          {node.children.map(cid => {
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'nowrap',
+            gap: 8,
+            padding: '8px 10px 10px',
+            alignItems: 'stretch',
+            minHeight: 30,
+          }}
+        >
+          {node.children.map((cid) => {
             const child = useDiagram.getState().nodes[cid]
-            return child ? <DiagramNode key={cid} node={child} canvasRef={canvasRef} viewport={viewport} zoom={zoom} /> : null
+            return child ? (
+              <DiagramNode
+                key={cid}
+                node={child}
+                canvasRef={canvasRef}
+                viewport={viewport}
+                zoom={zoom}
+              />
+            ) : null
           })}
         </div>
       </div>
@@ -435,11 +515,19 @@ export default function DiagramNode({ node, canvasRef, viewport, zoom }: Props) 
     >
       {selectionBadge}
       {ports}
-      <span style={{ ...titleTextStyle, display: 'block' }}><MathText content={node.title} align="center" /></span>
-      {node.desc && <span style={descTextStyle}><MathText content={node.desc} align="center" /></span>}
+      <span style={{ ...titleTextStyle, display: 'block' }}>
+        <MathText content={node.title} align="center" />
+      </span>
+      {node.desc && (
+        <span style={descTextStyle}>
+          <MathText content={node.desc} align="center" />
+        </span>
+      )}
     </div>
   )
 }
+
+export default DiagramNode
 
 function isDescendant(anc: string, child: string, nodes: Record<string, DiagramNodeType>): boolean {
   let c = nodes[child]?.parent

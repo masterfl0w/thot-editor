@@ -1,3 +1,4 @@
+import type { FunctionComponent } from 'react'
 import { css } from '../../styled-system/css'
 import { useDiagram, autoFg } from '../store/diagramStore'
 
@@ -232,45 +233,134 @@ const swatchStyle = css({
 
 const IconConnect = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-    <circle cx="2.5" cy="6.5" r="1.5" stroke="currentColor" strokeWidth="1.1"/>
-    <circle cx="10.5" cy="6.5" r="1.5" stroke="currentColor" strokeWidth="1.1"/>
-    <line x1="4" y1="6.5" x2="9" y2="6.5" stroke="currentColor" strokeWidth="1.1"/>
+    <circle cx="2.5" cy="6.5" r="1.5" stroke="currentColor" strokeWidth="1.1" />
+    <circle cx="10.5" cy="6.5" r="1.5" stroke="currentColor" strokeWidth="1.1" />
+    <line x1="4" y1="6.5" x2="9" y2="6.5" stroke="currentColor" strokeWidth="1.1" />
   </svg>
 )
 const IconTrashSm = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-    <path d="M2 3.5h9M4.5 3.5V3h4v.5M5.5 6v3.5M7.5 6v3.5M2.5 3.5l.75 6.5a.9.9 0 00.9.75h4.7a.9.9 0 00.9-.75l.75-6.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+    <path
+      d="M2 3.5h9M4.5 3.5V3h4v.5M5.5 6v3.5M7.5 6v3.5M2.5 3.5l.75 6.5a.9.9 0 00.9.75h4.7a.9.9 0 00.9-.75l.75-6.5"
+      stroke="currentColor"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+    />
   </svg>
 )
 const IconAlignLeft = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-    <line x1="1" y1="3" x2="12" y2="3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
-    <line x1="1" y1="6.5" x2="8" y2="6.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
-    <line x1="1" y1="10" x2="10" y2="10" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+    <line
+      x1="1"
+      y1="3"
+      x2="12"
+      y2="3"
+      stroke="currentColor"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+    />
+    <line
+      x1="1"
+      y1="6.5"
+      x2="8"
+      y2="6.5"
+      stroke="currentColor"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+    />
+    <line
+      x1="1"
+      y1="10"
+      x2="10"
+      y2="10"
+      stroke="currentColor"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+    />
   </svg>
 )
 const IconAlignCenter = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-    <line x1="1" y1="3" x2="12" y2="3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
-    <line x1="3" y1="6.5" x2="10" y2="6.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
-    <line x1="2" y1="10" x2="11" y2="10" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+    <line
+      x1="1"
+      y1="3"
+      x2="12"
+      y2="3"
+      stroke="currentColor"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+    />
+    <line
+      x1="3"
+      y1="6.5"
+      x2="10"
+      y2="6.5"
+      stroke="currentColor"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+    />
+    <line
+      x1="2"
+      y1="10"
+      x2="11"
+      y2="10"
+      stroke="currentColor"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+    />
   </svg>
 )
 const IconAlignRight = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-    <line x1="1" y1="3" x2="12" y2="3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
-    <line x1="5" y1="6.5" x2="12" y2="6.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
-    <line x1="3" y1="10" x2="12" y2="10" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+    <line
+      x1="1"
+      y1="3"
+      x2="12"
+      y2="3"
+      stroke="currentColor"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+    />
+    <line
+      x1="5"
+      y1="6.5"
+      x2="12"
+      y2="6.5"
+      stroke="currentColor"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+    />
+    <line
+      x1="3"
+      y1="10"
+      x2="12"
+      y2="10"
+      stroke="currentColor"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+    />
   </svg>
 )
 
-export default function PropertiesPanel() {
+const PropertiesPanel: FunctionComponent = () => {
   const {
-    selNode, selText, selEdge, multiSel,
-    nodes, texts, edges,
-    updateNode, updateText, updateEdge,
-    deleteNode, deleteText, deleteEdge,
-    startConnect, deselectAll, detachNode, deleteMultiSel,
+    selNode,
+    selText,
+    selEdge,
+    multiSel,
+    nodes,
+    texts,
+    edges,
+    updateNode,
+    updateText,
+    updateEdge,
+    deleteNode,
+    deleteText,
+    deleteEdge,
+    startConnect,
+    deselectAll,
+    detachNode,
+    deleteMultiSel,
   } = useDiagram()
 
   const node = selNode ? nodes[selNode] : null
@@ -280,10 +370,19 @@ export default function PropertiesPanel() {
 
   let panelTitle = 'Properties'
   let panelSub = 'Nothing selected'
-  if (node) { panelTitle = 'Box'; panelSub = node.title || 'Untitled' }
-  else if (text) { panelTitle = 'Text'; panelSub = text.content.slice(0, 20) + (text.content.length > 20 ? '…' : '') }
-  else if (edge !== null) { panelTitle = 'Link'; panelSub = edge.label || 'No label' }
-  else if (hasMulti) { panelTitle = 'Selection'; panelSub = `${multiSel.size} elements` }
+  if (node) {
+    panelTitle = 'Box'
+    panelSub = node.title || 'Untitled'
+  } else if (text) {
+    panelTitle = 'Text'
+    panelSub = text.content.slice(0, 20) + (text.content.length > 20 ? '…' : '')
+  } else if (edge !== null) {
+    panelTitle = 'Link'
+    panelSub = edge.label || 'No label'
+  } else if (hasMulti) {
+    panelTitle = 'Selection'
+    panelSub = `${multiSel.size} elements`
+  }
 
   return (
     <div className={panelStyle}>
@@ -294,7 +393,9 @@ export default function PropertiesPanel() {
       <div className={bodyStyle}>
         {!node && !text && !edge && !hasMulti && (
           <p style={{ color: '#888780', fontSize: 12, lineHeight: 1.6, padding: '4px 0' }}>
-            Drag on the canvas to select multiple elements.<br /><br />
+            Drag on the canvas to select multiple elements.
+            <br />
+            <br />
             Right-click to add · Click a link to select it.
           </p>
         )}
@@ -304,19 +405,32 @@ export default function PropertiesPanel() {
           <div>
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Title</label>
-              <input className={inputStyle} value={node.title} placeholder="Box title"
-                onChange={e => updateNode(node.id, { title: e.target.value })} />
+              <input
+                className={inputStyle}
+                value={node.title}
+                placeholder="Box title"
+                onChange={(e) => updateNode(node.id, { title: e.target.value })}
+              />
             </div>
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Description</label>
-              <textarea className={inputStyle} value={node.desc} placeholder="Optional subtitle"
+              <textarea
+                className={inputStyle}
+                value={node.desc}
+                placeholder="Optional subtitle"
                 style={{ resize: 'vertical', minHeight: 48, lineHeight: 1.5 }}
-                onChange={e => updateNode(node.id, { desc: e.target.value })} />
+                onChange={(e) => updateNode(node.id, { desc: e.target.value })}
+              />
             </div>
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Shape</label>
-              <select className={inputStyle} value={node.shape}
-                onChange={e => updateNode(node.id, { shape: e.target.value as typeof node.shape })}>
+              <select
+                className={inputStyle}
+                value={node.shape}
+                onChange={(e) =>
+                  updateNode(node.id, { shape: e.target.value as typeof node.shape })
+                }
+              >
                 <option value="rect">Rectangle</option>
                 <option value="circle">Circle</option>
                 <option value="diamond">Diamond</option>
@@ -327,8 +441,23 @@ export default function PropertiesPanel() {
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Background</label>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="color" value={node.bg} style={{ width: 32, height: 26, padding: 2, border: '0.5px solid rgba(0,0,0,0.15)', borderRadius: 6, background: '#f5f3ee', cursor: 'pointer', flexShrink: 0 }}
-                  onChange={e => updateNode(node.id, { bg: e.target.value, fg: autoFg(e.target.value) })} />
+                <input
+                  type="color"
+                  value={node.bg}
+                  style={{
+                    width: 32,
+                    height: 26,
+                    padding: 2,
+                    border: '0.5px solid rgba(0,0,0,0.15)',
+                    borderRadius: 6,
+                    background: '#f5f3ee',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                  onChange={(e) =>
+                    updateNode(node.id, { bg: e.target.value, fg: autoFg(e.target.value) })
+                  }
+                />
                 <span className={colorLabelStyle}>{node.bg}</span>
               </div>
               <div className={swatchGridStyle}>
@@ -350,56 +479,126 @@ export default function PropertiesPanel() {
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Text color</label>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="color" value={node.fg} style={{ width: 32, height: 26, padding: 2, border: '0.5px solid rgba(0,0,0,0.15)', borderRadius: 6, background: '#f5f3ee', cursor: 'pointer', flexShrink: 0 }}
-                  onChange={e => updateNode(node.id, { fg: e.target.value })} />
+                <input
+                  type="color"
+                  value={node.fg}
+                  style={{
+                    width: 32,
+                    height: 26,
+                    padding: 2,
+                    border: '0.5px solid rgba(0,0,0,0.15)',
+                    borderRadius: 6,
+                    background: '#f5f3ee',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                  onChange={(e) => updateNode(node.id, { fg: e.target.value })}
+                />
                 <span className={colorLabelStyle}>{node.fg}</span>
-                <button className={fAutoStyle} onClick={() => updateNode(node.id, { fg: autoFg(node.bg) })}>Auto</button>
+                <button
+                  className={fAutoStyle}
+                  onClick={() => updateNode(node.id, { fg: autoFg(node.bg) })}
+                >
+                  Auto
+                </button>
               </div>
             </div>
             <div className={sepStyle} />
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Text</label>
               <div style={{ display: 'flex', gap: 6 }}>
-                <select className={inputStyle} style={{ flex: 1 }} value={node.family}
-                  onChange={e => updateNode(node.id, { family: e.target.value })}>
+                <select
+                  className={inputStyle}
+                  style={{ flex: 1 }}
+                  value={node.family}
+                  onChange={(e) => updateNode(node.id, { family: e.target.value })}
+                >
                   <option value="inherit">Default</option>
                   <option value="Georgia,serif">Georgia</option>
                   <option value="'Courier New',monospace">Monospace</option>
                   <option value="Impact,sans-serif">Impact</option>
                 </select>
-                <input type="number" className={inputStyle} value={node.size} min={8} max={96} style={{ width: 58 }}
-                  onChange={e => updateNode(node.id, { size: +e.target.value || 13 })} />
+                <input
+                  type="number"
+                  className={inputStyle}
+                  value={node.size}
+                  min={8}
+                  max={96}
+                  style={{ width: 58 }}
+                  onChange={(e) => updateNode(node.id, { size: +e.target.value || 13 })}
+                />
               </div>
             </div>
             <div style={{ marginBottom: 10 }}>
               <label className={labelStyle}>Attributes</label>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                {([['bold','B','bold'],['italic','I','italic'],['underline','U','under'],['strike','S','strike']] as const).map(([prop, label, key]) => (
-                  <button key={key} className={`${fmtBtnStyle} ${node[prop] ? fmtBtnOnStyle : ''}`}
-                    onClick={() => updateNode(node.id, { [prop]: !node[prop] } as Pick<typeof node, typeof prop>)}>
+                {(
+                  [
+                    ['bold', 'B', 'bold'],
+                    ['italic', 'I', 'italic'],
+                    ['underline', 'U', 'under'],
+                    ['strike', 'S', 'strike'],
+                  ] as const
+                ).map(([prop, label, key]) => (
+                  <button
+                    key={key}
+                    className={`${fmtBtnStyle} ${node[prop] ? fmtBtnOnStyle : ''}`}
+                    onClick={() =>
+                      updateNode(node.id, { [prop]: !node[prop] } as Pick<typeof node, typeof prop>)
+                    }
+                  >
                     {label}
                   </button>
                 ))}
               </div>
             </div>
             <div style={{ marginBottom: 11 }}>
-              <label className={labelStyle}>Radius — <span>{node.radius}</span>px</label>
-              <input type="range" min={0} max={28} value={node.radius} style={{ width: '100%' }}
-                onChange={e => updateNode(node.id, { radius: +e.target.value })} />
+              <label className={labelStyle}>
+                Radius — <span>{node.radius}</span>px
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={28}
+                value={node.radius}
+                style={{ width: '100%' }}
+                onChange={(e) => updateNode(node.id, { radius: +e.target.value })}
+              />
             </div>
             <div className={sepStyle} />
             {node.parent && (
               <div style={{ marginBottom: 11 }}>
                 <label className={labelStyle}>Nested inside</label>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: '#888780' }}>{nodes[node.parent]?.title || '—'}</span>
-                  <button className={fAutoStyle} onClick={() => detachNode(node.id, true)}>Detach</button>
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
+                  <span style={{ fontSize: 12, color: '#888780' }}>
+                    {nodes[node.parent]?.title || '—'}
+                  </span>
+                  <button className={fAutoStyle} onClick={() => detachNode(node.id, true)}>
+                    Detach
+                  </button>
                 </div>
               </div>
             )}
             <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-              <button className={actionBtnStyle} style={{ marginBottom: 0 }} onClick={() => startConnect()}><IconConnect /> Connect</button>
-              <button className={`${actionBtnStyle} ${dangerBtnStyle}`} style={{ marginBottom: 0 }} onClick={() => { deselectAll(); deleteNode(node.id) }}><IconTrashSm /> Delete</button>
+              <button
+                className={actionBtnStyle}
+                style={{ marginBottom: 0 }}
+                onClick={() => startConnect()}
+              >
+                <IconConnect /> Connect
+              </button>
+              <button
+                className={`${actionBtnStyle} ${dangerBtnStyle}`}
+                style={{ marginBottom: 0 }}
+                onClick={() => {
+                  deselectAll()
+                  deleteNode(node.id)
+                }}
+              >
+                <IconTrashSm /> Delete
+              </button>
             </div>
           </div>
         )}
@@ -409,31 +608,56 @@ export default function PropertiesPanel() {
           <div>
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Content</label>
-              <textarea className={inputStyle} value={text.content} placeholder="Text content"
+              <textarea
+                className={inputStyle}
+                value={text.content}
+                placeholder="Text content"
                 style={{ minHeight: 60, resize: 'vertical' }}
-                onChange={e => updateText(text.id, { content: e.target.value })} />
+                onChange={(e) => updateText(text.id, { content: e.target.value })}
+              />
             </div>
             <div className={sepStyle} />
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Font</label>
               <div style={{ display: 'flex', gap: 6 }}>
-                <select className={inputStyle} style={{ flex: 1 }} value={text.family}
-                  onChange={e => updateText(text.id, { family: e.target.value })}>
+                <select
+                  className={inputStyle}
+                  style={{ flex: 1 }}
+                  value={text.family}
+                  onChange={(e) => updateText(text.id, { family: e.target.value })}
+                >
                   <option value="inherit">Default</option>
                   <option value="Georgia,serif">Georgia</option>
                   <option value="'Courier New',monospace">Monospace</option>
                   <option value="Impact,sans-serif">Impact</option>
                 </select>
-                <input type="number" className={inputStyle} value={text.size} min={8} max={96} style={{ width: 58 }}
-                  onChange={e => updateText(text.id, { size: +e.target.value || 16 })} />
+                <input
+                  type="number"
+                  className={inputStyle}
+                  value={text.size}
+                  min={8}
+                  max={96}
+                  style={{ width: 58 }}
+                  onChange={(e) => updateText(text.id, { size: +e.target.value || 16 })}
+                />
               </div>
             </div>
             <div style={{ marginBottom: 10 }}>
               <label className={labelStyle}>Style</label>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                {([['bold','B','bold'],['italic','I','italic'],['underline','U','under'],['strike','S','strike']] as const).map(([prop, label, key]) => (
-                  <button key={key} className={`${fmtBtnStyle} ${(text as any)[prop] ? fmtBtnOnStyle : ''}`}
-                    onClick={() => updateText(text.id, { [prop]: !(text as any)[prop] } as any)}>
+                {(
+                  [
+                    ['bold', 'B', 'bold'],
+                    ['italic', 'I', 'italic'],
+                    ['underline', 'U', 'under'],
+                    ['strike', 'S', 'strike'],
+                  ] as const
+                ).map(([prop, label, key]) => (
+                  <button
+                    key={key}
+                    className={`${fmtBtnStyle} ${(text as any)[prop] ? fmtBtnOnStyle : ''}`}
+                    onClick={() => updateText(text.id, { [prop]: !(text as any)[prop] } as any)}
+                  >
                     {label}
                   </button>
                 ))}
@@ -442,10 +666,19 @@ export default function PropertiesPanel() {
             <div style={{ marginBottom: 10 }}>
               <label className={labelStyle}>Align</label>
               <div style={{ display: 'flex', gap: 4 }}>
-                {(['left','center','right'] as const).map(a => (
-                  <button key={a} className={`${alignBtnStyle} ${text.align === a ? fmtBtnOnStyle : ''}`}
-                    onClick={() => updateText(text.id, { align: a })}>
-                    {a === 'left' ? <IconAlignLeft /> : a === 'center' ? <IconAlignCenter /> : <IconAlignRight />}
+                {(['left', 'center', 'right'] as const).map((a) => (
+                  <button
+                    key={a}
+                    className={`${alignBtnStyle} ${text.align === a ? fmtBtnOnStyle : ''}`}
+                    onClick={() => updateText(text.id, { align: a })}
+                  >
+                    {a === 'left' ? (
+                      <IconAlignLeft />
+                    ) : a === 'center' ? (
+                      <IconAlignCenter />
+                    ) : (
+                      <IconAlignRight />
+                    )}
                   </button>
                 ))}
               </div>
@@ -453,18 +686,47 @@ export default function PropertiesPanel() {
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Color</label>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="color" value={text.color} style={{ width: 32, height: 26, padding: 2, border: '0.5px solid rgba(0,0,0,0.15)', borderRadius: 6, background: '#f5f3ee', cursor: 'pointer', flexShrink: 0 }}
-                  onChange={e => updateText(text.id, { color: e.target.value })} />
+                <input
+                  type="color"
+                  value={text.color}
+                  style={{
+                    width: 32,
+                    height: 26,
+                    padding: 2,
+                    border: '0.5px solid rgba(0,0,0,0.15)',
+                    borderRadius: 6,
+                    background: '#f5f3ee',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                  onChange={(e) => updateText(text.id, { color: e.target.value })}
+                />
                 <span className={colorLabelStyle}>{text.color}</span>
               </div>
             </div>
             <div style={{ marginBottom: 11 }}>
-              <label className={labelStyle}>Opacity — <span>{text.opacity}</span>%</label>
-              <input type="range" min={10} max={100} value={text.opacity} style={{ width: '100%' }}
-                onChange={e => updateText(text.id, { opacity: +e.target.value })} />
+              <label className={labelStyle}>
+                Opacity — <span>{text.opacity}</span>%
+              </label>
+              <input
+                type="range"
+                min={10}
+                max={100}
+                value={text.opacity}
+                style={{ width: '100%' }}
+                onChange={(e) => updateText(text.id, { opacity: +e.target.value })}
+              />
             </div>
             <div className={sepStyle} />
-            <button className={`${actionBtnStyle} ${dangerBtnStyle}`} onClick={() => { deselectAll(); deleteText(text.id) }}><IconTrashSm /> Delete text</button>
+            <button
+              className={`${actionBtnStyle} ${dangerBtnStyle}`}
+              onClick={() => {
+                deselectAll()
+                deleteText(text.id)
+              }}
+            >
+              <IconTrashSm /> Delete text
+            </button>
           </div>
         )}
 
@@ -473,12 +735,20 @@ export default function PropertiesPanel() {
           <div>
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Label</label>
-              <input className={inputStyle} value={edge.label} placeholder="Short label"
-                onChange={e => updateEdge(selEdge, { label: e.target.value })} />
+              <input
+                className={inputStyle}
+                value={edge.label}
+                placeholder="Short label"
+                onChange={(e) => updateEdge(selEdge, { label: e.target.value })}
+              />
             </div>
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Link shape</label>
-              <select className={inputStyle} value={edge.route} onChange={e => updateEdge(selEdge, { route: e.target.value as any })}>
+              <select
+                className={inputStyle}
+                value={edge.route}
+                onChange={(e) => updateEdge(selEdge, { route: e.target.value as any })}
+              >
                 <option value="straight">Straight</option>
                 <option value="curve">Curve</option>
                 <option value="angle">Angle</option>
@@ -486,29 +756,58 @@ export default function PropertiesPanel() {
             </div>
             {edge.route !== 'straight' && (
               <div style={{ marginBottom: 11 }}>
-                <label className={labelStyle}>Bend — <span>{edge.bend}</span>px</label>
-                <input type="range" min={-120} max={120} value={edge.bend} style={{ width: '100%' }}
-                  onChange={e => updateEdge(selEdge, { bend: +e.target.value })} />
+                <label className={labelStyle}>
+                  Bend — <span>{edge.bend}</span>px
+                </label>
+                <input
+                  type="range"
+                  min={-120}
+                  max={120}
+                  value={edge.bend}
+                  style={{ width: '100%' }}
+                  onChange={(e) => updateEdge(selEdge, { bend: +e.target.value })}
+                />
               </div>
             )}
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Description</label>
-              <textarea className={inputStyle} value={edge.desc} placeholder="Shown on hover"
+              <textarea
+                className={inputStyle}
+                value={edge.desc}
+                placeholder="Shown on hover"
                 style={{ resize: 'vertical' }}
-                onChange={e => updateEdge(selEdge, { desc: e.target.value })} />
+                onChange={(e) => updateEdge(selEdge, { desc: e.target.value })}
+              />
             </div>
             <div className={sepStyle} />
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Color</label>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="color" value={edge.color} style={{ width: 32, height: 26, padding: 2, border: '0.5px solid rgba(0,0,0,0.15)', borderRadius: 6, background: '#f5f3ee', cursor: 'pointer', flexShrink: 0 }}
-                  onChange={e => updateEdge(selEdge, { color: e.target.value })} />
+                <input
+                  type="color"
+                  value={edge.color}
+                  style={{
+                    width: 32,
+                    height: 26,
+                    padding: 2,
+                    border: '0.5px solid rgba(0,0,0,0.15)',
+                    borderRadius: 6,
+                    background: '#f5f3ee',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                  onChange={(e) => updateEdge(selEdge, { color: e.target.value })}
+                />
                 <span className={colorLabelStyle}>{edge.color}</span>
               </div>
             </div>
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Line style</label>
-              <select className={inputStyle} value={edge.style} onChange={e => updateEdge(selEdge, { style: e.target.value as any })}>
+              <select
+                className={inputStyle}
+                value={edge.style}
+                onChange={(e) => updateEdge(selEdge, { style: e.target.value as any })}
+              >
                 <option value="solid">Solid</option>
                 <option value="dashed">Dashed</option>
                 <option value="dotted">Dotted</option>
@@ -516,25 +815,43 @@ export default function PropertiesPanel() {
             </div>
             <div style={{ marginBottom: 11 }}>
               <label className={labelStyle}>Arrow</label>
-              <select className={inputStyle} value={edge.arrow} onChange={e => updateEdge(selEdge, { arrow: e.target.value as any })}>
+              <select
+                className={inputStyle}
+                value={edge.arrow}
+                onChange={(e) => updateEdge(selEdge, { arrow: e.target.value as any })}
+              >
                 <option value="end">One way →</option>
                 <option value="both">Both ↔</option>
                 <option value="none">None</option>
               </select>
             </div>
             <div className={sepStyle} />
-            <button className={`${actionBtnStyle} ${dangerBtnStyle}`} onClick={() => { deselectAll(); deleteEdge(selEdge) }}><IconTrashSm /> Delete link</button>
+            <button
+              className={`${actionBtnStyle} ${dangerBtnStyle}`}
+              onClick={() => {
+                deselectAll()
+                deleteEdge(selEdge)
+              }}
+            >
+              <IconTrashSm /> Delete link
+            </button>
           </div>
         )}
 
         {/* Multi Form */}
         {hasMulti && (
           <div>
-            <p style={{ fontSize: 12, color: '#888780', marginBottom: 12 }}>{multiSel.size} elements selected</p>
-            <button className={`${actionBtnStyle} ${dangerBtnStyle}`} onClick={deleteMultiSel}><IconTrashSm /> Delete selected</button>
+            <p style={{ fontSize: 12, color: '#888780', marginBottom: 12 }}>
+              {multiSel.size} elements selected
+            </p>
+            <button className={`${actionBtnStyle} ${dangerBtnStyle}`} onClick={deleteMultiSel}>
+              <IconTrashSm /> Delete selected
+            </button>
           </div>
         )}
       </div>
     </div>
   )
 }
+
+export default PropertiesPanel

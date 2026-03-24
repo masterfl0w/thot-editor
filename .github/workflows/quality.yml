@@ -1,0 +1,47 @@
+name: Quality
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Prettier check
+        id: prettier_check
+        continue-on-error: true
+        run: npm run format:check
+
+      - name: Auto-format workspace
+        if: steps.prettier_check.outcome == 'failure'
+        run: npm run format
+
+      - name: Fail if formatting changes were required
+        if: steps.prettier_check.outcome == 'failure'
+        run: |
+          git diff --stat
+          echo "Formatting changes were required. Please run 'npm run format' locally and commit the result."
+          exit 1
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript checks
+        run: npm run typecheck

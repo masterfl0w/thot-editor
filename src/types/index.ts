@@ -53,6 +53,6 @@ export interface Edge {
 
 export type ContextMenuTarget =
   | { type: 'canvas'; x: number; y: number; wx: number; wy: number }
-  | { type: 'node';   id: string; x: number; y: number }
-  | { type: 'text';   id: string; x: number; y: number }
+  | { type: 'node'; id: string; x: number; y: number }
+  | { type: 'text'; id: string; x: number; y: number }
   | null

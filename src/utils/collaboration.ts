@@ -1,4 +1,9 @@
-import { useDiagram, type ActionHistoryEntry, type CollaborationRequest, type CollaboratorPresence } from '../store/diagramStore'
+import {
+  useDiagram,
+  type ActionHistoryEntry,
+  type CollaborationRequest,
+  type CollaboratorPresence,
+} from '../store/diagramStore'
 
 const COLOR_PALETTE = [
   '#f4a8a8',
@@ -34,7 +39,8 @@ const SCI_FI_NAMES = [
 
 const STORAGE_KEY = 'thot-editor-workspace'
 const GUEST_BACKUP_KEY = 'thot-editor-collab-guest-backup'
-const DEFAULT_MODE = 'Select mode: drag to multi-select · Shift-click to add to selection · Right-click to add'
+const DEFAULT_MODE =
+  'Select mode: drag to multi-select · Shift-click to add to selection · Right-click to add'
 const MOVE_MODE = 'Move mode: drag or scroll to pan · Right-click to add'
 
 type Profile = {
@@ -58,11 +64,32 @@ type RequestPayload = {
 }
 
 type ServerMessage =
-  | { type: 'session-started'; roomId: string; participants: ParticipantPayload[]; pendingRequests: RequestPayload[] }
+  | {
+      type: 'session-started'
+      roomId: string
+      participants: ParticipantPayload[]
+      pendingRequests: RequestPayload[]
+    }
   | { type: 'join-requested'; roomId: string }
-  | { type: 'approved'; roomId: string; workspace: unknown; participants: ParticipantPayload[]; pendingRequests: RequestPayload[] }
-  | { type: 'collaboration-state'; roomId: string; participants: ParticipantPayload[]; pendingRequests: RequestPayload[] }
-  | { type: 'pointer-state'; roomId: string; participantId: string; pointer: { x: number; y: number } | null }
+  | {
+      type: 'approved'
+      roomId: string
+      workspace: unknown
+      participants: ParticipantPayload[]
+      pendingRequests: RequestPayload[]
+    }
+  | {
+      type: 'collaboration-state'
+      roomId: string
+      participants: ParticipantPayload[]
+      pendingRequests: RequestPayload[]
+    }
+  | {
+      type: 'pointer-state'
+      roomId: string
+      participantId: string
+      pointer: { x: number; y: number } | null
+    }
   | { type: 'workspace'; roomId: string; workspace: unknown; actorId: string }
   | { type: 'room-closed' }
   | { type: 'kicked' }
@@ -164,38 +191,49 @@ function restorePersistedGuestWorkspace(raw: string | null) {
     }
   }
 
-  const nodes = persistedState?.nodes && typeof persistedState.nodes === 'object'
-    ? persistedState.nodes as ReturnType<typeof useDiagram.getState>['nodes']
-    : {}
-  const texts = persistedState?.texts && typeof persistedState.texts === 'object'
-    ? persistedState.texts as ReturnType<typeof useDiagram.getState>['texts']
-    : {}
+  const nodes =
+    persistedState?.nodes && typeof persistedState.nodes === 'object'
+      ? (persistedState.nodes as ReturnType<typeof useDiagram.getState>['nodes'])
+      : {}
+  const texts =
+    persistedState?.texts && typeof persistedState.texts === 'object'
+      ? (persistedState.texts as ReturnType<typeof useDiagram.getState>['texts'])
+      : {}
   const edges = Array.isArray(persistedState?.edges)
-    ? persistedState.edges as ReturnType<typeof useDiagram.getState>['edges']
+    ? (persistedState.edges as ReturnType<typeof useDiagram.getState>['edges'])
     : []
   const theme = persistedState?.theme === 'dark' ? 'dark' : 'light'
   const layoutMode = persistedState?.layoutMode === 'static' ? 'static' : 'free'
   const interactionMode = persistedState?.interactionMode === 'move' ? 'move' : 'select'
-  const viewport = persistedState?.viewport && typeof persistedState.viewport === 'object'
-    ? {
-        x: typeof (persistedState.viewport as { x?: unknown }).x === 'number' ? (persistedState.viewport as { x: number }).x : 0,
-        y: typeof (persistedState.viewport as { y?: unknown }).y === 'number' ? (persistedState.viewport as { y: number }).y : 0,
-      }
-    : { x: 0, y: 0 }
+  const viewport =
+    persistedState?.viewport && typeof persistedState.viewport === 'object'
+      ? {
+          x:
+            typeof (persistedState.viewport as { x?: unknown }).x === 'number'
+              ? (persistedState.viewport as { x: number }).x
+              : 0,
+          y:
+            typeof (persistedState.viewport as { y?: unknown }).y === 'number'
+              ? (persistedState.viewport as { y: number }).y
+              : 0,
+        }
+      : { x: 0, y: 0 }
   const zoom = typeof persistedState?.zoom === 'number' ? persistedState.zoom : 1
   const nc = typeof persistedState?.nc === 'number' ? persistedState.nc : 0
   const tc = typeof persistedState?.tc === 'number' ? persistedState.tc : 0
   const actionHistory = Array.isArray(persistedState?.actionHistory)
-    ? persistedState.actionHistory.filter((item): item is ActionHistoryEntry =>
-      !!item
-      && typeof item === 'object'
-      && typeof (item as ActionHistoryEntry).id === 'string'
-      && typeof (item as ActionHistoryEntry).label === 'string'
-      && typeof (item as ActionHistoryEntry).actor === 'string'
-      && typeof (item as ActionHistoryEntry).createdAt === 'string')
+    ? persistedState.actionHistory.filter(
+        (item): item is ActionHistoryEntry =>
+          !!item &&
+          typeof item === 'object' &&
+          typeof (item as ActionHistoryEntry).id === 'string' &&
+          typeof (item as ActionHistoryEntry).label === 'string' &&
+          typeof (item as ActionHistoryEntry).actor === 'string' &&
+          typeof (item as ActionHistoryEntry).createdAt === 'string',
+      )
     : []
 
-  useDiagram.setState(state => ({
+  useDiagram.setState((state) => ({
     ...state,
     nodes,
     texts,
@@ -240,7 +278,7 @@ function restoreGuestWorkspace() {
 
 function mapParticipants(participants: ParticipantPayload[]): CollaboratorPresence[] {
   const selfId = useDiagram.getState().collaboration.selfId
-  return participants.map(participant => ({
+  return participants.map((participant) => ({
     id: participant.id,
     name: participant.name,
     color: participant.color,
@@ -251,7 +289,7 @@ function mapParticipants(participants: ParticipantPayload[]): CollaboratorPresen
 }
 
 function mapRequests(requests: RequestPayload[]): CollaborationRequest[] {
-  return requests.map(request => ({
+  return requests.map((request) => ({
     id: request.id,
     name: request.name,
     color: request.color,
@@ -281,7 +319,7 @@ function setupStoreSync() {
   let lastActionLength = useDiagram.getState().actionHistory.length
   let lastHistoryPastLength = useDiagram.getState().historyPast.length
   let lastHistoryFutureLength = useDiagram.getState().historyFuture.length
-  unsubStore = useDiagram.subscribe(state => {
+  unsubStore = useDiagram.subscribe((state) => {
     if (socket?.readyState !== WebSocket.OPEN || !currentRoomId) return
     const pointerSerialized = JSON.stringify(state.pointer)
     const now = Date.now()
@@ -296,9 +334,9 @@ function setupStoreSync() {
     }
 
     if (
-      state.actionHistory.length !== lastActionLength
-      || state.historyPast.length !== lastHistoryPastLength
-      || state.historyFuture.length !== lastHistoryFutureLength
+      state.actionHistory.length !== lastActionLength ||
+      state.historyPast.length !== lastHistoryPastLength ||
+      state.historyFuture.length !== lastHistoryFutureLength
     ) {
       lastActionLength = state.actionHistory.length
       lastHistoryPastLength = state.historyPast.length
@@ -323,7 +361,10 @@ function cleanupConnection(removeUrl = true, restoreGuest = true) {
   currentRoomId = null
   lastPointerSerialized = 'null'
   lastPointerSentAt = 0
-  const shouldRestoreGuestWorkspace = restoreGuest && useDiagram.getState().collaboration.active && !useDiagram.getState().collaboration.isHost
+  const shouldRestoreGuestWorkspace =
+    restoreGuest &&
+    useDiagram.getState().collaboration.active &&
+    !useDiagram.getState().collaboration.isHost
   currentIsHost = false
   useDiagram.getState().resetCollaborationState()
   if (shouldRestoreGuestWorkspace) restoreGuestWorkspace()
@@ -334,7 +375,7 @@ function cleanupConnection(removeUrl = true, restoreGuest = true) {
 function updateParticipantPointer(participantId: string, pointer: { x: number; y: number } | null) {
   const state = useDiagram.getState()
   state.setCollaborationParticipants(
-    state.collaboration.participants.map(participant =>
+    state.collaboration.participants.map((participant) =>
       participant.id === participantId ? { ...participant, pointer } : participant,
     ),
   )
@@ -398,7 +439,10 @@ function handleServerMessage(message: ServerMessage) {
     }
     case 'workspace': {
       const next = JSON.stringify(message.workspace)
-      if (next !== lastSerializedWorkspace && store.applyCollaborativeWorkspace(message.workspace)) {
+      if (
+        next !== lastSerializedWorkspace &&
+        store.applyCollaborativeWorkspace(message.workspace)
+      ) {
         lastSerializedWorkspace = next
       }
       break
@@ -430,7 +474,11 @@ function handleServerMessage(message: ServerMessage) {
 }
 
 function connectSocket(serverUrl: string, onOpen: () => void) {
-  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return
+  if (
+    socket &&
+    (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)
+  )
+    return
   socket = new WebSocket(serverUrl)
   socket.onopen = () => {
     setupStoreSync()
@@ -478,7 +526,8 @@ export function ensureCollaborationFromUrl() {
 }
 
 export function startHostedCollaboration(serverUrl?: string) {
-  if (useDiagram.getState().collaboration.active && useDiagram.getState().collaboration.isHost) return getInviteLink()
+  if (useDiagram.getState().collaboration.active && useDiagram.getState().collaboration.isHost)
+    return getInviteLink()
   const roomId = Math.random().toString(36).slice(2, 10)
   const profile = getSelfProfile()
   currentIsHost = true

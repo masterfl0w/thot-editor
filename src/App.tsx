@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { FunctionComponent } from 'react'
 import { css } from '../styled-system/css'
 import Topbar from './components/Topbar'
 import PropertiesPanel from './components/PropertiesPanel'
@@ -8,7 +9,7 @@ import LandingPage from './components/LandingPage'
 import { useDiagram } from './store/diagramStore'
 import { ensureCollaborationFromUrl } from './utils/collaboration'
 
-function ToastViewport() {
+const ToastViewport: FunctionComponent = () => {
   const { toasts, removeToast } = useDiagram()
   if (toasts.length === 0) return null
 
@@ -25,7 +26,7 @@ function ToastViewport() {
         maxWidth: '360px',
       })}
     >
-      {toasts.map(toast => (
+      {toasts.map((toast) => (
         <button
           key={toast.id}
           onClick={() => removeToast(toast.id)}
@@ -51,7 +52,7 @@ function ToastViewport() {
   )
 }
 
-function DemoTopbar() {
+const DemoTopbar: FunctionComponent = () => {
   return (
     <div
       className={css({
@@ -86,7 +87,7 @@ function DemoTopbar() {
   )
 }
 
-function CollaborationPill() {
+const CollaborationPill: FunctionComponent = () => {
   const { collaboration, theme } = useDiagram()
   if (!collaboration.active) return null
 
@@ -127,8 +128,11 @@ function CollaborationPill() {
           width: 8,
           height: 8,
           borderRadius: '50%',
-          background: collaboration.awaitingApproval ? '#f2df8f' : (collaboration.selfColor ?? '#98dbc6'),
-          boxShadow: theme === 'dark' ? '0 0 0 4px rgba(255,255,255,0.06)' : '0 0 0 4px rgba(0,0,0,0.05)',
+          background: collaboration.awaitingApproval
+            ? '#f2df8f'
+            : collaboration.selfColor ?? '#98dbc6',
+          boxShadow:
+            theme === 'dark' ? '0 0 0 4px rgba(255,255,255,0.06)' : '0 0 0 4px rgba(0,0,0,0.05)',
           flexShrink: 0,
         }}
       />
@@ -137,7 +141,9 @@ function CollaborationPill() {
   )
 }
 
-function EditorWorkspace({ miniDemo = false }: { miniDemo?: boolean }) {
+type EditorWorkspaceProps = { miniDemo?: boolean }
+
+const EditorWorkspace: FunctionComponent<EditorWorkspaceProps> = ({ miniDemo = false }) => {
   const {
     deselectAll,
     cancelConnect,
@@ -215,19 +221,21 @@ function EditorWorkspace({ miniDemo = false }: { miniDemo?: boolean }) {
           children: [],
         },
       },
-      edges: [{
-        from: 'n1',
-        to: 'n2',
-        fromSide: 'pr',
-        toSide: 'pl',
-        label: '',
-        desc: '',
-        color: '#cbc7bf',
-        style: 'solid',
-        arrow: 'end',
-        route: 'curve',
-        bend: 24,
-      }],
+      edges: [
+        {
+          from: 'n1',
+          to: 'n2',
+          fromSide: 'pr',
+          toSide: 'pl',
+          label: '',
+          desc: '',
+          color: '#cbc7bf',
+          style: 'solid',
+          arrow: 'end',
+          route: 'curve',
+          bend: 24,
+        },
+      ],
       theme: 'dark',
       layoutMode: 'static',
       viewport: { x: 0, y: 0 },
@@ -266,7 +274,10 @@ function EditorWorkspace({ miniDemo = false }: { miniDemo?: boolean }) {
 
     const onKey = (e: KeyboardEvent) => {
       if (editingTextId) {
-        if (e.key === 'Escape') { e.preventDefault(); finishEditText(editingTextId) }
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          finishEditText(editingTextId)
+        }
         return
       }
       const tag = (document.activeElement as HTMLElement)?.tagName
@@ -292,27 +303,26 @@ function EditorWorkspace({ miniDemo = false }: { miniDemo?: boolean }) {
         }
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return
-      if (layoutMode === 'static' && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      if (
+        layoutMode === 'static' &&
+        ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)
+      ) {
         const step = 24
-        const delta = e.key === 'ArrowUp'
-          ? { x: 0, y: -step }
-          : e.key === 'ArrowDown'
-            ? { x: 0, y: step }
-            : e.key === 'ArrowLeft'
-              ? { x: -step, y: 0 }
-              : { x: step, y: 0 }
+        const delta =
+          e.key === 'ArrowUp'
+            ? { x: 0, y: -step }
+            : e.key === 'ArrowDown'
+              ? { x: 0, y: step }
+              : e.key === 'ArrowLeft'
+                ? { x: -step, y: 0 }
+                : { x: step, y: 0 }
 
-        const selection = multiSel.size > 0
-          ? [...multiSel]
-          : selNode
-            ? [selNode]
-            : selText
-              ? [selText]
-              : []
+        const selection =
+          multiSel.size > 0 ? [...multiSel] : selNode ? [selNode] : selText ? [selText] : []
 
         if (selection.length > 0) {
           e.preventDefault()
-          selection.forEach(id => {
+          selection.forEach((id) => {
             if (nodes[id]) moveNode(id, nodes[id].x + delta.x, nodes[id].y + delta.y)
             else if (texts[id]) moveText(id, texts[id].x + delta.x, texts[id].y + delta.y)
           })
@@ -381,16 +391,18 @@ function EditorWorkspace({ miniDemo = false }: { miniDemo?: boolean }) {
   ])
 
   return (
-    <div className={css({
-      position: 'relative',
-      height: '100vh',
-      overflow: 'hidden',
-      overscrollBehavior: 'none',
-      background: 'linear-gradient(180deg, #ece8e0 0%, #e7e1d7 100%)',
-      '[data-theme=dark] &': {
-        background: 'linear-gradient(180deg, #171715 0%, #121210 100%)',
-      },
-    })}>
+    <div
+      className={css({
+        position: 'relative',
+        height: '100vh',
+        overflow: 'hidden',
+        overscrollBehavior: 'none',
+        background: 'linear-gradient(180deg, #ece8e0 0%, #e7e1d7 100%)',
+        '[data-theme=dark] &': {
+          background: 'linear-gradient(180deg, #171715 0%, #121210 100%)',
+        },
+      })}
+    >
       {miniDemo ? <DemoTopbar /> : <Topbar />}
       {!miniDemo && <CollaborationPill />}
       <div className={css({ position: 'absolute', inset: 0 })}>
@@ -403,10 +415,11 @@ function EditorWorkspace({ miniDemo = false }: { miniDemo?: boolean }) {
   )
 }
 
-export default function App() {
+const App: FunctionComponent = () => {
   const { theme } = useDiagram()
   const [screen, setScreen] = useState<'landing' | 'editor' | 'demo'>(() =>
-    window.location.hash === '#editor' || !!new URLSearchParams(window.location.search).get('collab')
+    window.location.hash === '#editor' ||
+    !!new URLSearchParams(window.location.search).get('collab')
       ? 'editor'
       : window.location.hash === '#demo'
         ? 'demo'
@@ -428,7 +441,8 @@ export default function App() {
   useEffect(() => {
     const syncFromHash = () => {
       setScreen(
-        window.location.hash === '#editor' || !!new URLSearchParams(window.location.search).get('collab')
+        window.location.hash === '#editor' ||
+          !!new URLSearchParams(window.location.search).get('collab')
           ? 'editor'
           : window.location.hash === '#demo'
             ? 'demo'
@@ -461,3 +475,5 @@ export default function App() {
 
   return <EditorWorkspace />
 }
+
+export default App

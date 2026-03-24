@@ -48,7 +48,7 @@ function getParticipantList(room) {
 }
 
 function getPendingList(room) {
-  return [...room.pending.values()].map(guest => ({
+  return [...room.pending.values()].map((guest) => ({
     id: guest.profile.id,
     name: guest.profile.name,
     color: guest.profile.color,
@@ -91,10 +91,13 @@ function broadcastPointer(room, participantId, pointer) {
 function assignColor(room) {
   const used = new Set([
     ...(room.host ? [room.host.profile.color] : []),
-    ...[...room.guests.values()].map(guest => guest.profile.color),
-    ...[...room.pending.values()].map(guest => guest.profile.color),
+    ...[...room.guests.values()].map((guest) => guest.profile.color),
+    ...[...room.pending.values()].map((guest) => guest.profile.color),
   ])
-  return COLOR_PALETTE.find(color => !used.has(color)) ?? COLOR_PALETTE[(room.guests.size + room.pending.size) % COLOR_PALETTE.length]
+  return (
+    COLOR_PALETTE.find((color) => !used.has(color)) ??
+    COLOR_PALETTE[(room.guests.size + room.pending.size) % COLOR_PALETTE.length]
+  )
 }
 
 function removeSocketFromRoom(ws) {
@@ -176,7 +179,11 @@ wss.on('connection', (ws) => {
     }
 
     if (message.type === 'guest-request') {
-      if (room.pending.has(message.profile.id) || room.guests.has(message.profile.id) || room.host?.profile.id === message.profile.id) {
+      if (
+        room.pending.has(message.profile.id) ||
+        room.guests.has(message.profile.id) ||
+        room.host?.profile.id === message.profile.id
+      ) {
         send(ws, { type: 'join-requested', roomId: room.id })
         return
       }

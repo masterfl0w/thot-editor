@@ -1,3 +1,4 @@
+import type { FunctionComponent } from 'react'
 import katex from 'katex'
 
 type Segment =
@@ -36,10 +37,7 @@ function parseMathSegments(content: string): Segment[] {
     ) {
       start = blockStart
       kind = 'block'
-    } else if (
-      starStart !== -1 &&
-      (inlineStart === -1 || starStart <= inlineStart)
-    ) {
+    } else if (starStart !== -1 && (inlineStart === -1 || starStart <= inlineStart)) {
       start = starStart
       kind = 'inline'
     } else if (inlineStart !== -1) {
@@ -92,13 +90,12 @@ function renderMath(value: string, displayMode: boolean) {
   }
 }
 
-export default function MathText({
-  content,
-  align = 'left',
-}: {
+type MathTextProps = {
   content: string
   align?: 'left' | 'center' | 'right'
-}) {
+}
+
+const MathText: FunctionComponent<MathTextProps> = ({ content, align = 'left' }) => {
   const segments = parseMathSegments(content)
 
   return (
@@ -126,3 +123,5 @@ export default function MathText({
     </span>
   )
 }
+
+export default MathText

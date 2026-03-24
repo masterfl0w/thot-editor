@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react'
+import type { FunctionComponent, RefObject } from 'react'
 import { useDiagram } from '../store/diagramStore'
 import type { TextNode as TextNodeType } from '../types'
 import MathText from './MathText'
@@ -7,12 +8,12 @@ const THRESH = 6
 
 interface Props {
   text: TextNodeType
-  canvasRef: React.RefObject<HTMLDivElement | null>
+  canvasRef: RefObject<HTMLDivElement | null>
   viewport: { x: number; y: number }
   zoom: number
 }
 
-export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
+const TextNode: FunctionComponent<Props> = ({ text, canvasRef, viewport, zoom }) => {
   const {
     selectText,
     toggleMultiSel,
@@ -53,7 +54,9 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
     fontFamily: text.family,
     fontWeight: text.bold ? '700' : '400',
     fontStyle: text.italic ? 'italic' : 'normal',
-    textDecoration: [text.underline ? 'underline' : '', text.strike ? 'line-through' : ''].filter(Boolean).join(' '),
+    textDecoration: [text.underline ? 'underline' : '', text.strike ? 'line-through' : '']
+      .filter(Boolean)
+      .join(' '),
     textAlign: text.align,
     opacity: text.opacity / 100,
     boxShadow: isSelected
@@ -61,7 +64,11 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
       : isMultiSel
         ? '0 0 0 3px rgba(79,124,255,0.18), 0 8px 18px rgba(79,124,255,0.12)'
         : 'none',
-    background: isEditing ? 'rgba(245,243,238,0.12)' : isMultiSel ? 'rgba(79,124,255,0.08)' : 'transparent',
+    background: isEditing
+      ? 'rgba(245,243,238,0.12)'
+      : isMultiSel
+        ? 'rgba(79,124,255,0.08)'
+        : 'transparent',
     outline: 'none',
   }
 
@@ -81,14 +88,22 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
   const handleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (isEditing) return
-    if ((multiSel.has(text.id) && multiSel.size > 1)) return
-    dragRef.current = { active: true, startX: e.clientX, startY: e.clientY, moved: false, ox: 0, oy: 0 }
+    if (multiSel.has(text.id) && multiSel.size > 1) return
+    dragRef.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      moved: false,
+      ox: 0,
+      oy: 0,
+    }
     const before = captureWorkspaceSnapshot()
 
     const onMove = (me: MouseEvent) => {
       const d = dragRef.current
-      const dx = me.clientX - d.startX, dy = me.clientY - d.startY
-      if (!d.moved && Math.sqrt(dx*dx + dy*dy) < THRESH) return
+      const dx = me.clientX - d.startX,
+        dy = me.clientY - d.startY
+      if (!d.moved && Math.sqrt(dx * dx + dy * dy) < THRESH) return
       d.moved = true
       const cw = canvasRef.current
       if (!cw) return
@@ -96,7 +111,10 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
       if (!d.ox) {
         const el = elRef.current
         const r = el?.getBoundingClientRect()
-        if (r) { d.ox = me.clientX - wr.left - (r.left - wr.left); d.oy = me.clientY - wr.top - (r.top - wr.top) }
+        if (r) {
+          d.ox = me.clientX - wr.left - (r.left - wr.left)
+          d.oy = me.clientY - wr.top - (r.top - wr.top)
+        }
       }
       setTextPosition(
         text.id,
@@ -142,32 +160,33 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
     if (isEditing) finishEditText(text.id)
   }
 
-  const badge = isMultiSel && !isEditing ? (
-    <div
-      className="selection-badge"
-      style={{
-        position: 'absolute',
-        top: -10,
-        right: -10,
-        width: 18,
-        height: 18,
-        borderRadius: '999px',
-        background: '#4f7cff',
-        border: '2px solid #fff',
-        boxShadow: '0 3px 10px rgba(79,124,255,0.35)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#fff',
-        fontSize: 11,
-        fontWeight: 700,
-        pointerEvents: 'none',
-        zIndex: 30,
-      }}
-    >
-      +
-    </div>
-  ) : null
+  const badge =
+    isMultiSel && !isEditing ? (
+      <div
+        className="selection-badge"
+        style={{
+          position: 'absolute',
+          top: -10,
+          right: -10,
+          width: 18,
+          height: 18,
+          borderRadius: '999px',
+          background: '#4f7cff',
+          border: '2px solid #fff',
+          boxShadow: '0 3px 10px rgba(79,124,255,0.35)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fff',
+          fontSize: 11,
+          fontWeight: 700,
+          pointerEvents: 'none',
+          zIndex: 30,
+        }}
+      >
+        +
+      </div>
+    ) : null
 
   if (isEditing) {
     return (
@@ -189,9 +208,9 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
             border: '2px solid #6c6cff',
             boxShadow: '0 0 0 3px rgba(108,108,255,0.18)',
           }}
-          onChange={e => updateText(text.id, { content: e.target.value })}
+          onChange={(e) => updateText(text.id, { content: e.target.value })}
           onBlur={handleBlur}
-          onMouseDown={e => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
           onContextMenu={handleContextMenu}
         />
       </div>
@@ -213,3 +232,5 @@ export default function TextNode({ text, canvasRef, viewport, zoom }: Props) {
     </div>
   )
 }
+
+export default TextNode
