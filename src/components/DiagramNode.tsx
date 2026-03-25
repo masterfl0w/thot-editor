@@ -271,7 +271,10 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
             }
 
             const totalChildrenWidth =
-              childNodes.reduce((sum: number, child: DiagramNodeType) => sum + (child.width ?? 160), 0) +
+              childNodes.reduce(
+                (sum: number, child: DiagramNodeType) => sum + (child.width ?? 160),
+                0,
+              ) +
               Math.max(childNodes.length - 1, 0) * 8
             const tallestChild = childNodes.reduce(
               (max: number, child: DiagramNodeType) => Math.max(max, child.height ?? 88),
@@ -432,8 +435,8 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
   const nodePadding = isTriangle ? '18px 14px 12px' : isDiamond ? '18px 16px' : undefined
   const nodeMinWidth = isCircle ? 110 : isTriangle ? 120 : isDiamond ? 120 : undefined
   const nodeMinHeight = isCircle ? 110 : isTriangle ? 96 : isDiamond ? 110 : undefined
-  const nodeWidth = Math.max(node.width ?? (nodeMinWidth ?? 160), nodeMinWidth ?? 96)
-  const nodeHeight = Math.max(node.height ?? (nodeMinHeight ?? 88), nodeMinHeight ?? 72)
+  const nodeWidth = Math.max(node.width ?? nodeMinWidth ?? 160, nodeMinWidth ?? 96)
+  const nodeHeight = Math.max(node.height ?? nodeMinHeight ?? 88, nodeMinHeight ?? 72)
   const childNodes = node.children
     .map((cid) => useDiagram.getState().nodes[cid])
     .filter((child): child is DiagramNodeType => Boolean(child))

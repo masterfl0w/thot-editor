@@ -731,7 +731,8 @@ export const useDiagram = create<DiagramState>()(
               selNode: null,
               selText: null,
               selEdge: null,
-              modeText: next.size > 0 ? `${next.size} elements selected` : getModeText(interactionMode),
+              modeText:
+                next.size > 0 ? `${next.size} elements selected` : getModeText(interactionMode),
             })
           },
 
