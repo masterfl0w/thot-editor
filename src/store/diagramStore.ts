@@ -100,7 +100,7 @@ interface DiagramState {
   viewport: { x: number; y: number }
   pointer: { x: number; y: number } | null
   zoom: number
-  interactionMode: 'select' | 'move'
+  interactionMode: 'select' | 'move' | 'resize'
   selNode: string | null
   selText: string | null
   selEdge: number | null
@@ -143,7 +143,7 @@ interface DiagramState {
   deleteMultiSel: () => void
   setCtxTarget: (t: ContextMenuTarget) => void
   setModeText: (t: string) => void
-  setInteractionMode: (mode: 'select' | 'move') => void
+  setInteractionMode: (mode: 'select' | 'move' | 'resize') => void
   setTheme: (theme: 'light' | 'dark') => void
   toggleTheme: () => void
   setLayoutMode: (layoutMode: 'free' | 'static') => void
@@ -181,6 +181,7 @@ interface DiagramState {
 const DEFAULT_MODE =
   'Select mode: drag to multi-select · Shift-click to add to selection · Right-click to add'
 const MOVE_MODE = 'Move mode: drag or scroll to pan · Right-click to add'
+const RESIZE_MODE = 'Resize mode: drag box handles to edit size'
 const STORAGE_KEY =
   typeof window !== 'undefined' && window.location.hash === '#demo'
     ? 'thot-editor-demo-workspace'
@@ -188,6 +189,11 @@ const STORAGE_KEY =
 const SNAP_STEP = 24
 const MAX_UNDO = 50
 const MAX_ACTION_HISTORY = 120
+const CHILD_GAP = 8
+const PARENT_CHILD_PADDING_X = 10
+const PARENT_CHILD_PADDING_TOP = 8
+const PARENT_CHILD_PADDING_BOTTOM = 10
+const PARENT_HEADER_HEIGHT = 64
 const EMPTY_COLLABORATION: CollaborationState = {
   active: false,
   roomId: null,
@@ -247,6 +253,87 @@ function sameWorkspace(a: WorkspaceSnapshot, b: WorkspaceSnapshot) {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
+function defaultNodeSize(shape: DiagramNode['shape']) {
+  if (shape === 'circle') return { width: 128, height: 128 }
+  if (shape === 'triangle') return { width: 164, height: 116 }
+  if (shape === 'diamond') return { width: 150, height: 128 }
+  return { width: 160, height: 88 }
+}
+
+function getModeText(mode: DiagramState['interactionMode']) {
+  if (mode === 'move') return MOVE_MODE
+  if (mode === 'resize') return RESIZE_MODE
+  return DEFAULT_MODE
+}
+
+function getNodeSize(node: DiagramNode) {
+  const fallback = defaultNodeSize(node.shape)
+  return {
+    width: Math.max(node.width ?? fallback.width, 1),
+    height: Math.max(node.height ?? fallback.height, 1),
+  }
+}
+
+function fitParentToChildren(nodes: Record<string, DiagramNode>, parentId: string) {
+  const nextNodes = { ...nodes }
+  let currentParentId: string | null = parentId
+
+  while (currentParentId) {
+    const parent: DiagramNode | undefined = nextNodes[currentParentId]
+    if (!parent) break
+
+    const childNodes: DiagramNode[] = parent.children
+      .map((childId: string) => nextNodes[childId])
+      .filter((child): child is DiagramNode => Boolean(child))
+    if (childNodes.length === 0) {
+      currentParentId = parent.parent
+      continue
+    }
+
+    const totalChildrenWidth =
+      childNodes.reduce((sum: number, child: DiagramNode) => sum + getNodeSize(child).width, 0) +
+      CHILD_GAP * Math.max(childNodes.length - 1, 0)
+    const tallestChild = childNodes.reduce(
+      (max: number, child: DiagramNode) => Math.max(max, getNodeSize(child).height),
+      0,
+    )
+    const fallback = defaultNodeSize(parent.shape)
+    const requiredWidth = totalChildrenWidth + PARENT_CHILD_PADDING_X * 2
+    const requiredHeight =
+      PARENT_HEADER_HEIGHT + PARENT_CHILD_PADDING_TOP + tallestChild + PARENT_CHILD_PADDING_BOTTOM
+
+    nextNodes[currentParentId] = {
+      ...parent,
+      width: Math.max(parent.width ?? fallback.width, requiredWidth),
+      height: Math.max(parent.height ?? fallback.height, requiredHeight),
+    }
+
+    currentParentId = parent.parent
+  }
+
+  return nextNodes
+}
+
+function applyNodePatchToDescendants(
+  nodes: Record<string, DiagramNode>,
+  nodeId: string,
+  patch: Partial<DiagramNode>,
+) {
+  const nextNodes = { ...nodes }
+  const stack = [...(nextNodes[nodeId]?.children ?? [])]
+
+  while (stack.length > 0) {
+    const childId = stack.pop()
+    if (!childId) continue
+    const child = nextNodes[childId]
+    if (!child) continue
+    nextNodes[childId] = { ...child, ...patch }
+    stack.push(...child.children)
+  }
+
+  return nextNodes
+}
+
 function isPortSide(value: unknown): value is PortSide {
   return value === 'pt' || value === 'pb' || value === 'pl' || value === 'pr'
 }
@@ -270,6 +357,8 @@ function isDiagramNode(value: unknown): value is DiagramNode {
     typeof node.radius === 'number' &&
     typeof node.x === 'number' &&
     typeof node.y === 'number' &&
+    (typeof node.width === 'number' || node.width === null || node.width === undefined) &&
+    (typeof node.height === 'number' || node.height === null || node.height === undefined) &&
     (typeof node.parent === 'string' || node.parent === null) &&
     Array.isArray(node.children)
   )
@@ -344,7 +433,12 @@ function normalizeWorkspaceData(data: unknown) {
   const nodes = Object.fromEntries(
     nodeEntries.map(([id, value]) => [
       id,
-      { ...(value as DiagramNode), children: [...(value as DiagramNode).children] },
+      {
+        ...(value as DiagramNode),
+        width: (value as DiagramNode).width ?? null,
+        height: (value as DiagramNode).height ?? null,
+        children: [...(value as DiagramNode).children],
+      },
     ]),
   )
   const texts = Object.fromEntries(
@@ -438,13 +532,15 @@ export const useDiagram = create<DiagramState>()(
             const fg = opts.fg ?? autoFg(bg)
             const x = opts.x ?? 80 + Math.random() * 240
             const y = opts.y ?? 60 + Math.random() * 180
+            const shape = opts.shape ?? 'rect'
+            const baseSize = defaultNodeSize(shape)
             const node: DiagramNode = {
               id,
               title: opts.title ?? 'New box',
               desc: opts.desc ?? '',
               bg,
               fg,
-              shape: opts.shape ?? 'rect',
+              shape,
               family: opts.family ?? 'inherit',
               size: opts.size ?? 13,
               bold: opts.bold ?? false,
@@ -454,6 +550,8 @@ export const useDiagram = create<DiagramState>()(
               radius: opts.radius ?? 10,
               x: layoutMode === 'static' ? snap(x) : x,
               y: layoutMode === 'static' ? snap(y) : y,
+              width: opts.width ?? baseSize.width,
+              height: opts.height ?? baseSize.height,
               parent: null,
               children: [],
             }
@@ -466,7 +564,10 @@ export const useDiagram = create<DiagramState>()(
               }
               newNodes[opts.parent] = parent
             }
-            applyWorkspaceChange('Add box', { nodes: newNodes, nc: newNc })
+            applyWorkspaceChange('Add box', {
+              nodes: opts.parent ? fitParentToChildren(newNodes, opts.parent) : newNodes,
+              nc: newNc,
+            })
             return id
           },
 
@@ -557,8 +658,18 @@ export const useDiagram = create<DiagramState>()(
           updateNode: (id, patch) => {
             const { nodes } = get()
             if (!nodes[id]) return
+            const node = nodes[id]
+            let nextNodes = { ...nodes, [id]: { ...node, ...patch } }
+
+            if (node.children.length > 0 && ('bg' in patch || 'fg' in patch)) {
+              const childPatch: Partial<DiagramNode> = {}
+              if ('bg' in patch) childPatch.bg = patch.bg
+              if ('fg' in patch) childPatch.fg = patch.fg
+              nextNodes = applyNodePatchToDescendants(nextNodes, id, childPatch)
+            }
+
             applyWorkspaceChange('Edit box', {
-              nodes: { ...nodes, [id]: { ...nodes[id], ...patch } },
+              nodes: nextNodes,
             })
           },
 
@@ -608,7 +719,7 @@ export const useDiagram = create<DiagramState>()(
           },
 
           toggleMultiSel: (id) => {
-            const { multiSel, selNode, selText, nodes, texts } = get()
+            const { multiSel, selNode, selText, nodes, texts, interactionMode } = get()
             if (!nodes[id] && !texts[id]) return
             const next = new Set(multiSel)
             if (selNode) next.add(selNode)
@@ -620,7 +731,7 @@ export const useDiagram = create<DiagramState>()(
               selNode: null,
               selText: null,
               selEdge: null,
-              modeText: next.size > 0 ? `${next.size} elements selected` : DEFAULT_MODE,
+              modeText: next.size > 0 ? `${next.size} elements selected` : getModeText(interactionMode),
             })
           },
 
@@ -632,7 +743,7 @@ export const useDiagram = create<DiagramState>()(
               selEdge: null,
               multiSel: new Set(),
               editingTextId: null,
-              modeText: interactionMode === 'move' ? MOVE_MODE : DEFAULT_MODE,
+              modeText: getModeText(interactionMode),
             })
           },
 
@@ -648,7 +759,7 @@ export const useDiagram = create<DiagramState>()(
               ...newNodes[parentId],
               children: [...newNodes[parentId].children, childId],
             }
-            applyWorkspaceChange('Nest box', { nodes: newNodes })
+            applyWorkspaceChange('Nest box', { nodes: fitParentToChildren(newNodes, parentId) })
           },
 
           detachNode: (id, place = true, ax, ay) => {
@@ -679,7 +790,7 @@ export const useDiagram = create<DiagramState>()(
               selEdge: null,
               multiSel: new Set(),
               editingTextId: null,
-              modeText: interactionMode === 'move' ? MOVE_MODE : DEFAULT_MODE,
+              modeText: getModeText(interactionMode),
             })
           },
 
@@ -701,7 +812,7 @@ export const useDiagram = create<DiagramState>()(
               cmode: false,
               csrc: null,
               csrcSide: null,
-              modeText: interactionMode === 'move' ? MOVE_MODE : DEFAULT_MODE,
+              modeText: getModeText(interactionMode),
             })
           },
 
@@ -717,7 +828,7 @@ export const useDiagram = create<DiagramState>()(
             applyWorkspaceChange('Finish text edit', {
               texts: { ...texts, [id]: { ...texts[id], ...patch } },
               editingTextId: null,
-              modeText: interactionMode === 'move' ? MOVE_MODE : DEFAULT_MODE,
+              modeText: getModeText(interactionMode),
             })
           },
 
@@ -742,7 +853,7 @@ export const useDiagram = create<DiagramState>()(
           setInteractionMode: (interactionMode) =>
             set({
               interactionMode,
-              modeText: interactionMode === 'move' ? MOVE_MODE : DEFAULT_MODE,
+              modeText: getModeText(interactionMode),
             }),
 
           setTheme: (theme) => set({ theme }),
@@ -754,8 +865,8 @@ export const useDiagram = create<DiagramState>()(
               layoutMode,
               modeText:
                 layoutMode === 'static'
-                  ? 'Static mode: nodes snap to grid positions'
-                  : DEFAULT_MODE,
+                  ? 'Static mode: nodes snap to grid positions and sizes'
+                  : getModeText(get().interactionMode),
             }),
 
           undo: () => {
@@ -1142,6 +1253,7 @@ export const useDiagram = create<DiagramState>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return
+        if (state.interactionMode === 'resize') state.interactionMode = 'select'
         state.pointer = null
         state.historyPast = []
         state.historyFuture = []
@@ -1155,7 +1267,7 @@ export const useDiagram = create<DiagramState>()(
         state.editingTextId = null
         state.sceneClipboard = null
         state.ctxTarget = null
-        state.modeText = state.interactionMode === 'move' ? MOVE_MODE : DEFAULT_MODE
+        state.modeText = getModeText(state.interactionMode)
         state.collaboration = EMPTY_COLLABORATION
       },
     },

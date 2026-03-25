@@ -247,7 +247,14 @@ const ContextMenu: FunctionComponent = () => {
                   if (!pb) return
                   const isDarkMode = isDark
                   const bg = adjHex(pb.bg, isDarkMode ? 30 : -30)
-                  const id = addBox({ parent: ctxTarget.id, title: 'Child box', bg, fg: pb.fg })
+                  const id = addBox({
+                    parent: ctxTarget.id,
+                    title: 'Child box',
+                    bg,
+                    fg: pb.fg,
+                    width: 132,
+                    height: 44,
+                  })
                   selectNode(id)
                 }}
               />

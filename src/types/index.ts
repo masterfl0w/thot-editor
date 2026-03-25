@@ -17,6 +17,8 @@ export interface DiagramNode {
   radius: number
   x: number
   y: number
+  width?: number | null
+  height?: number | null
   parent: string | null
   children: string[]
 }

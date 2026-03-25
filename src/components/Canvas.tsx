@@ -101,7 +101,7 @@ const Canvas: FunctionComponent = () => {
       lassoRef.current = { active: true, x0, y0 }
       setLassoRect({ x: x0, y: y0, w: 0, h: 0 })
       deselectAll()
-    } else {
+    } else if (interactionMode === 'move') {
       panRef.current = {
         active: true,
         startX: e.clientX,
@@ -111,6 +111,9 @@ const Canvas: FunctionComponent = () => {
         moved: false,
       }
       setIsPanning(true)
+    } else {
+      deselectAll()
+      return
     }
 
     const onMove = (me: MouseEvent) => {
@@ -236,7 +239,13 @@ const Canvas: FunctionComponent = () => {
         overflow: 'hidden',
         overscrollBehavior: 'none',
         touchAction: 'none',
-        cursor: isPanning ? 'grabbing' : interactionMode === 'move' ? 'grab' : 'crosshair',
+        cursor: isPanning
+          ? 'grabbing'
+          : interactionMode === 'move'
+            ? 'grab'
+            : interactionMode === 'resize'
+              ? 'default'
+              : 'crosshair',
         background: isDark ? '#1a1a18' : '#f5f3ee',
       }}
       onMouseDown={onCanvasMouseDown}
@@ -370,7 +379,7 @@ const Canvas: FunctionComponent = () => {
           opacity: 0.85,
         }}
       >
-        v0.3.1
+        v0.4
       </div>
     </div>
   )

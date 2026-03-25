@@ -30,6 +30,8 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
     setNodePosition,
     commitWorkspaceSnapshot,
     captureWorkspaceSnapshot,
+    interactionMode,
+    layoutMode,
   } = useDiagram()
 
   const isChild = !!node.parent
@@ -46,6 +48,13 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
     origins: {} as Record<string, { x: number; y: number }>,
   })
   const dragOverRef = useRef<string | null>(null)
+  const resizeRef = useRef({
+    active: false,
+    startX: 0,
+    startY: 0,
+    width: 0,
+    height: 0,
+  })
   const nodeRef = useRef<HTMLDivElement>(null)
   const [isHovering, setIsHovering] = useState(false)
 
@@ -210,6 +219,88 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
     selectNode(node.id)
   }
 
+  const handleResizeMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    selectNode(node.id)
+    const before = captureWorkspaceSnapshot()
+    resizeRef.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      width: node.width ?? 160,
+      height: node.height ?? 88,
+    }
+
+    const snapSize = (value: number) => {
+      if (layoutMode !== 'static') return value
+      return Math.max(24, Math.round(value / 24) * 24)
+    }
+
+    const minWidth = node.shape === 'circle' ? 110 : node.shape === 'triangle' ? 120 : 96
+    const minHeight = node.shape === 'circle' ? 110 : node.shape === 'triangle' ? 96 : 72
+
+    const onMove = (me: MouseEvent) => {
+      const dx = (me.clientX - resizeRef.current.startX) / zoom
+      const dy = (me.clientY - resizeRef.current.startY) / zoom
+      const nextWidth = Math.max(minWidth, snapSize(resizeRef.current.width + dx))
+      const nextHeight = Math.max(minHeight, snapSize(resizeRef.current.height + dy))
+      useDiagram.setState((state) => ({
+        nodes: (() => {
+          const nextNodes = {
+            ...state.nodes,
+            [node.id]: {
+              ...state.nodes[node.id],
+              width: nextWidth,
+              height: nextHeight,
+            },
+          }
+          const parentId = state.nodes[node.id]?.parent
+          if (!parentId) return nextNodes
+
+          let currentParentId: string | null = parentId
+          while (currentParentId) {
+            const parent: DiagramNodeType | undefined = nextNodes[currentParentId]
+            if (!parent) break
+            const childNodes: DiagramNodeType[] = parent.children
+              .map((childId: string) => nextNodes[childId])
+              .filter((child): child is DiagramNodeType => Boolean(child))
+            if (childNodes.length === 0) {
+              currentParentId = parent.parent
+              continue
+            }
+
+            const totalChildrenWidth =
+              childNodes.reduce((sum: number, child: DiagramNodeType) => sum + (child.width ?? 160), 0) +
+              Math.max(childNodes.length - 1, 0) * 8
+            const tallestChild = childNodes.reduce(
+              (max: number, child: DiagramNodeType) => Math.max(max, child.height ?? 88),
+              0,
+            )
+            nextNodes[currentParentId] = {
+              ...parent,
+              width: Math.max(parent.width ?? 160, totalChildrenWidth + 20),
+              height: Math.max(parent.height ?? 88, 64 + 8 + tallestChild + 10),
+            }
+            currentParentId = parent.parent
+          }
+
+          return nextNodes
+        })(),
+      }))
+    }
+
+    const onUp = () => {
+      resizeRef.current.active = false
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      commitWorkspaceSnapshot('Resize box', before)
+    }
+
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
+
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -341,6 +432,37 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
   const nodePadding = isTriangle ? '18px 14px 12px' : isDiamond ? '18px 16px' : undefined
   const nodeMinWidth = isCircle ? 110 : isTriangle ? 120 : isDiamond ? 120 : undefined
   const nodeMinHeight = isCircle ? 110 : isTriangle ? 96 : isDiamond ? 110 : undefined
+  const nodeWidth = Math.max(node.width ?? (nodeMinWidth ?? 160), nodeMinWidth ?? 96)
+  const nodeHeight = Math.max(node.height ?? (nodeMinHeight ?? 88), nodeMinHeight ?? 72)
+  const childNodes = node.children
+    .map((cid) => useDiagram.getState().nodes[cid])
+    .filter((child): child is DiagramNodeType => Boolean(child))
+  const singleRowWidth =
+    childNodes.reduce((sum, child) => sum + Math.max(child.width ?? 160, 1), 0) +
+    Math.max(childNodes.length - 1, 0) * 8 +
+    20
+  const wrapChildren = nodeWidth < singleRowWidth
+  const showResizeHandle = isSelected && interactionMode !== 'move'
+  const resizeHandle = showResizeHandle ? (
+    <button
+      type="button"
+      aria-label="Resize box"
+      onMouseDown={handleResizeMouseDown}
+      style={{
+        position: 'absolute',
+        right: -8,
+        bottom: -8,
+        width: 16,
+        height: 16,
+        borderRadius: 999,
+        border: '2px solid #fff',
+        background: '#6c6cff',
+        boxShadow: '0 4px 14px rgba(108,108,255,0.35)',
+        cursor: 'nwse-resize',
+        zIndex: 30,
+      }}
+    />
+  ) : null
   const titleTextStyle: React.CSSProperties = {
     fontSize: node.size,
     fontFamily: node.family,
@@ -370,8 +492,11 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
         ref={nodeRef}
         style={{
           position: 'relative',
+          width: nodeWidth,
           minWidth: nodeMinWidth ?? 80,
           minHeight: nodeMinHeight,
+          height: nodeHeight,
+          boxSizing: 'border-box',
           flex: '0 0 auto',
           borderRadius: nodeBorderRadius,
           clipPath: nodeClipPath,
@@ -396,6 +521,7 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
       >
         {selectionBadge}
         {ports}
+        {resizeHandle}
         <span style={titleTextStyle}>
           <MathText content={node.title} align="center" />
         </span>
@@ -422,11 +548,13 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
           position: 'absolute',
           left: node.x,
           top: node.y,
+          width: nodeWidth,
+          boxSizing: 'border-box',
           userSelect: 'none',
           border: `2px solid ${multiBorderColor}`,
           boxShadow,
           minWidth: nodeMinWidth ?? 120,
-          minHeight: nodeMinHeight,
+          minHeight: Math.max(nodeHeight, nodeMinHeight ?? 0),
           outline: isMultiSel ? '1.5px dashed rgba(79,124,255,0.8)' : 'none',
           outlineOffset: 4,
         }}
@@ -437,8 +565,14 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
       >
         {selectionBadge}
         {ports}
+        {resizeHandle}
         <div
-          style={{ padding: '10px 14px 8px', cursor: 'move', textAlign: 'center' }}
+          style={{
+            padding: '10px 14px 8px',
+            cursor: 'move',
+            textAlign: 'center',
+            flexShrink: 0,
+          }}
           onMouseDown={handleMouseDown}
         >
           <span style={{ ...titleTextStyle, display: 'block' }}>
@@ -454,25 +588,26 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
           style={{
             display: 'flex',
             flexDirection: 'row',
-            flexWrap: 'nowrap',
+            flexWrap: wrapChildren ? 'wrap' : 'nowrap',
             gap: 8,
             padding: '8px 10px 10px',
             alignItems: 'stretch',
+            alignContent: 'flex-start',
             minHeight: 30,
+            width: '100%',
+            boxSizing: 'border-box',
+            justifyContent: wrapChildren ? 'center' : 'flex-start',
           }}
         >
-          {node.children.map((cid) => {
-            const child = useDiagram.getState().nodes[cid]
-            return child ? (
-              <DiagramNode
-                key={cid}
-                node={child}
-                canvasRef={canvasRef}
-                viewport={viewport}
-                zoom={zoom}
-              />
-            ) : null
-          })}
+          {childNodes.map((child) => (
+            <DiagramNode
+              key={child.id}
+              node={child}
+              canvasRef={canvasRef}
+              viewport={viewport}
+              zoom={zoom}
+            />
+          ))}
         </div>
       </div>
     )
@@ -491,6 +626,9 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
         position: 'absolute',
         left: node.x,
         top: node.y,
+        width: nodeWidth,
+        height: nodeHeight,
+        boxSizing: 'border-box',
         padding: nodePadding ?? '10px 14px',
         cursor: 'move',
         textAlign: 'center',
@@ -515,6 +653,7 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
     >
       {selectionBadge}
       {ports}
+      {resizeHandle}
       <span style={{ ...titleTextStyle, display: 'block' }}>
         <MathText content={node.title} align="center" />
       </span>

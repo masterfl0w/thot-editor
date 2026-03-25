@@ -361,6 +361,7 @@ const PropertiesPanel: FunctionComponent = () => {
     deselectAll,
     detachNode,
     deleteMultiSel,
+    layoutMode,
   } = useDiagram()
 
   const node = selNode ? nodes[selNode] : null
@@ -436,6 +437,43 @@ const PropertiesPanel: FunctionComponent = () => {
                 <option value="diamond">Diamond</option>
                 <option value="triangle">Triangle</option>
               </select>
+            </div>
+            <div style={{ marginBottom: 11 }}>
+              <label className={labelStyle}>Size</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  type="number"
+                  className={inputStyle}
+                  value={node.width ?? ''}
+                  min={layoutMode === 'static' ? 24 : 48}
+                  step={layoutMode === 'static' ? 24 : 1}
+                  placeholder="Width"
+                  onChange={(e) =>
+                    updateNode(node.id, {
+                      width: Math.max(
+                        layoutMode === 'static' ? 24 : 48,
+                        Number(e.target.value) || 0,
+                      ),
+                    })
+                  }
+                />
+                <input
+                  type="number"
+                  className={inputStyle}
+                  value={node.height ?? ''}
+                  min={layoutMode === 'static' ? 24 : 48}
+                  step={layoutMode === 'static' ? 24 : 1}
+                  placeholder="Height"
+                  onChange={(e) =>
+                    updateNode(node.id, {
+                      height: Math.max(
+                        layoutMode === 'static' ? 24 : 48,
+                        Number(e.target.value) || 0,
+                      ),
+                    })
+                  }
+                />
+              </div>
             </div>
             <div className={sepStyle} />
             <div style={{ marginBottom: 11 }}>

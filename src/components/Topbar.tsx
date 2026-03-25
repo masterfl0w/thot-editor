@@ -417,9 +417,11 @@ const Topbar: FunctionComponent = () => {
   const [editOpen, setEditOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
   const [collabOpen, setCollabOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [importJson, setImportJson] = useState('')
+  const [exportJson, setExportJson] = useState('')
   const [collabServerUrl, setCollabServerUrl] = useState(
     () => localStorage.getItem('thot-collab-server-url') ?? '',
   )
@@ -488,16 +490,28 @@ const Topbar: FunctionComponent = () => {
   }
 
   const doExportJson = () => {
-    const blob = new Blob([JSON.stringify(exportWorkspace(), null, 2)], {
-      type: 'application/json',
-    })
+    setExportJson(JSON.stringify(exportWorkspace(), null, 2))
+    setExportOpen(true)
+    setMoreOpen(false)
+  }
+
+  const doCopyExportJson = async () => {
+    try {
+      await navigator.clipboard.writeText(exportJson)
+      pushToast('success', 'Workspace JSON copied to clipboard')
+    } catch {
+      pushToast('error', 'Unable to copy workspace JSON')
+    }
+  }
+
+  const doDownloadExportJson = () => {
+    const blob = new Blob([exportJson], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
     link.download = 'thot-workspace.json'
     link.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
-    setMoreOpen(false)
     pushToast('success', 'Workspace exported to JSON')
   }
 
@@ -897,6 +911,95 @@ const Topbar: FunctionComponent = () => {
                 onClick={doImportJson}
               >
                 Import JSON
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {exportOpen && (
+        <div
+          className={css({
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(18,18,16,0.36)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 900,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+          })}
+          onClick={() => setExportOpen(false)}
+        >
+          <div
+            className={css({
+              width: 'min(720px, 100%)',
+              borderRadius: '22px',
+              background: '#fff',
+              border: '0.5px solid rgba(0,0,0,0.1)',
+              boxShadow: '0 28px 80px rgba(0,0,0,0.18)',
+              padding: '18px',
+              '[data-theme=dark] &': {
+                background: '#2c2c2a',
+                borderColor: 'rgba(255,255,255,0.08)',
+              },
+            })}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 18, fontWeight: 700, color: modalTextColor, marginBottom: 6 }}>
+              Export to JSON
+            </div>
+            <div
+              style={{ fontSize: 13, lineHeight: 1.6, color: modalSubtleColor, marginBottom: 14 }}
+            >
+              Copy the workspace JSON to your clipboard or download it as a file.
+            </div>
+            <textarea
+              value={exportJson}
+              readOnly
+              className={css({
+                width: '100%',
+                minHeight: '320px',
+                resize: 'vertical',
+                borderRadius: '16px',
+                border: '0.5px solid rgba(0,0,0,0.12)',
+                background: '#f8f6f2',
+                color: '#1a1a18',
+                padding: '14px 16px',
+                fontSize: '13px',
+                lineHeight: '1.6',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                outline: 'none',
+                '[data-theme=dark] &': {
+                  background: '#1f1f1d',
+                  color: '#f5f3ee',
+                  borderColor: 'rgba(255,255,255,0.08)',
+                },
+              })}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
+              <button className={btnStyle} onClick={() => setExportOpen(false)}>
+                Close
+              </button>
+              <button className={btnStyle} onClick={() => void doCopyExportJson()}>
+                Copy JSON
+              </button>
+              <button
+                className={
+                  btnStyle +
+                  ' ' +
+                  css({
+                    background: '#1a1a18 !important',
+                    color: '#f5f3ee !important',
+                    '[data-theme=dark] &': {
+                      background: '#f5f3ee !important',
+                      color: '#1a1a18 !important',
+                    },
+                  })
+                }
+                onClick={doDownloadExportJson}
+              >
+                Download JSON
               </button>
             </div>
           </div>
