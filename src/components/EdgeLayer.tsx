@@ -21,6 +21,55 @@ function insetEdgePoints(pts: EdgeEndpoints, startInset: number, endInset: numbe
   }
 }
 
+function insetAngledEdgePoints(
+  pts: EdgeEndpoints,
+  bend: number,
+  startInset: number,
+  endInset: number,
+): EdgeEndpoints {
+  const dx = pts.ex - pts.sx
+  const dy = pts.ey - pts.sy
+
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    const midX = (pts.sx + pts.ex) / 2 + bend
+    const startDir = Math.sign(midX - pts.sx) || Math.sign(dx) || 1
+    const endDir = Math.sign(pts.ex - midX) || Math.sign(dx) || 1
+    return {
+      sx: pts.sx + startDir * startInset,
+      sy: pts.sy,
+      ex: pts.ex - endDir * endInset,
+      ey: pts.ey,
+    }
+  }
+
+  const midY = (pts.sy + pts.ey) / 2 + bend
+  const startDir = Math.sign(midY - pts.sy) || Math.sign(dy) || 1
+  const endDir = Math.sign(pts.ey - midY) || Math.sign(dy) || 1
+  return {
+    sx: pts.sx,
+    sy: pts.sy + startDir * startInset,
+    ex: pts.ex,
+    ey: pts.ey - endDir * endInset,
+  }
+}
+
+function insetEdgePointsForRoute(
+  pts: EdgeEndpoints,
+  route: 'straight' | 'curve' | 'angle',
+  bend: number,
+  startInset: number,
+  endInset: number,
+) {
+  if (route === 'angle') return insetAngledEdgePoints(pts, bend, startInset, endInset)
+  return insetEdgePoints(pts, startInset, endInset)
+}
+
+function sideAxis(side?: PortSide) {
+  if (side === 'pl' || side === 'pr') return 'horizontal'
+  if (side === 'pt' || side === 'pb') return 'vertical'
+  return null
+}
+
 type EdgeLayerProps = {
   canvasRef: RefObject<HTMLDivElement | null>
 }
@@ -112,7 +161,13 @@ const EdgeLayer: FunctionComponent<EdgeLayerProps> = ({ canvasRef }) => {
     return { sx, sy, ex, ey }
   }
 
-  const edgeShape = (pts: EdgeEndpoints, route: 'straight' | 'curve' | 'angle', bend: number) => {
+  const edgeShape = (
+    pts: EdgeEndpoints,
+    route: 'straight' | 'curve' | 'angle',
+    bend: number,
+    fromSide?: PortSide,
+    toSide?: PortSide,
+  ) => {
     if (route === 'curve') {
       const mx = (pts.sx + pts.ex) / 2
       const my = (pts.sy + pts.ey) / 2
@@ -131,6 +186,42 @@ const EdgeLayer: FunctionComponent<EdgeLayerProps> = ({ canvasRef }) => {
     }
 
     if (route === 'angle') {
+      const fromAxis = sideAxis(fromSide)
+      const toAxis = sideAxis(toSide)
+      if (fromAxis && toAxis) {
+        if (fromAxis === 'horizontal' && toAxis === 'horizontal') {
+          const midX = (pts.sx + pts.ex) / 2 + bend
+          return {
+            path: `M ${pts.sx} ${pts.sy} L ${midX} ${pts.sy} L ${midX} ${pts.ey} L ${pts.ex} ${pts.ey}`,
+            labelX: midX,
+            labelY: (pts.sy + pts.ey) / 2,
+          }
+        }
+        if (fromAxis === 'vertical' && toAxis === 'vertical') {
+          const midY = (pts.sy + pts.ey) / 2 + bend
+          return {
+            path: `M ${pts.sx} ${pts.sy} L ${pts.sx} ${midY} L ${pts.ex} ${midY} L ${pts.ex} ${pts.ey}`,
+            labelX: (pts.sx + pts.ex) / 2,
+            labelY: midY,
+          }
+        }
+        if (fromAxis === 'horizontal' && toAxis === 'vertical') {
+          const viaX = pts.ex + bend
+          const labelX = (viaX + pts.ex) / 2
+          return {
+            path: `M ${pts.sx} ${pts.sy} L ${viaX} ${pts.sy} L ${pts.ex} ${pts.sy} L ${pts.ex} ${pts.ey}`,
+            labelX,
+            labelY: (pts.sy + pts.ey) / 2,
+          }
+        }
+        const viaY = pts.ey + bend
+        return {
+          path: `M ${pts.sx} ${pts.sy} L ${pts.sx} ${viaY} L ${pts.sx} ${pts.ey} L ${pts.ex} ${pts.ey}`,
+          labelX: (pts.sx + pts.ex) / 2,
+          labelY: (viaY + pts.ey) / 2,
+        }
+      }
+
       const dx = pts.ex - pts.sx
       const dy = pts.ey - pts.sy
       if (Math.abs(dx) >= Math.abs(dy)) {
@@ -213,12 +304,16 @@ const EdgeLayer: FunctionComponent<EdgeLayerProps> = ({ canvasRef }) => {
           if (!nodes[edge.from] || !nodes[edge.to]) return null
           const p = edgePts(edge.from, edge.to, edge.fromSide, edge.toSide)
           if (!p) return null
+          const route = edge.route ?? 'straight'
+          const bend = edge.bend ?? 0
           const insetStart = edge.arrow === 'both' ? 7 : 0
           const insetEnd = edge.arrow !== 'none' ? 8 : 0
           const shape = edgeShape(
-            insetEdgePoints(p, insetStart, insetEnd),
-            edge.route ?? 'straight',
-            edge.bend ?? 0,
+            insetEdgePointsForRoute(p, route, bend, insetStart, insetEnd),
+            route,
+            bend,
+            edge.fromSide,
+            edge.toSide,
           )
           const isSel = idx === selEdge
           const c = isSel ? '#6c6cff' : edge.color || '#888780'
@@ -315,6 +410,7 @@ const EdgeLayer: FunctionComponent<EdgeLayerProps> = ({ canvasRef }) => {
               { sx: src.x, sy: src.y, ex: pointer.x, ey: pointer.y },
               'straight',
               0,
+              csrcSide,
             )
             return (
               <path
