@@ -63,7 +63,7 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
     let best: string | null = null
     let bestArea = Infinity
     Object.values(allNodes).forEach((n) => {
-      if (n.id === excl || n.parent) return
+      if (n.id === excl) return
       if (isDescendant(n.id, excl, allNodes)) return
       const el = document.getElementById('nd-' + n.id)
       if (!el) return
@@ -142,6 +142,18 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
       const cur = allNodes[node.id]
       if (!cur) return
 
+      const updateDropTarget = (under: string | null) => {
+        if (dragOverRef.current && dragOverRef.current !== under) {
+          document.getElementById('nd-' + dragOverRef.current)?.classList.remove('drag-over-target')
+        }
+        if (under) {
+          document.getElementById('nd-' + under)?.classList.add('drag-over-target')
+          dragOverRef.current = under
+        } else {
+          dragOverRef.current = null
+        }
+      }
+
       if (cur.parent) {
         const pel = document.getElementById('nd-' + cur.parent)
         if (pel) {
@@ -151,7 +163,11 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
             me.clientX > pr2.right ||
             me.clientY < pr2.top ||
             me.clientY > pr2.bottom
-          if (!outside) return
+          if (!outside) {
+            const under = findDropTarget(me.clientX, me.clientY, node.id)
+            updateDropTarget(under && under !== cur.parent ? under : null)
+            return
+          }
           const nel = document.getElementById('nd-' + node.id)
           const nr = nel?.getBoundingClientRect()
           detachNode(
@@ -177,15 +193,7 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
       setNodePosition(node.id, newX, newY)
 
       const under = findDropTarget(me.clientX, me.clientY, node.id)
-      if (dragOverRef.current && dragOverRef.current !== under) {
-        document.getElementById('nd-' + dragOverRef.current)?.classList.remove('drag-over-target')
-      }
-      if (under) {
-        document.getElementById('nd-' + under)?.classList.add('drag-over-target')
-        dragOverRef.current = under
-      } else {
-        dragOverRef.current = null
-      }
+      updateDropTarget(under)
     }
 
     const onUp = () => {
@@ -440,6 +448,13 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
   const childNodes = node.children
     .map((cid) => useDiagram.getState().nodes[cid])
     .filter((child): child is DiagramNodeType => Boolean(child))
+  const childAlignMap: Record<DiagramNodeType['childAlignment'], React.CSSProperties['justifyContent']> =
+    {
+      start: 'flex-start',
+      center: 'center',
+      end: 'flex-end',
+    }
+  const childAlignment = childAlignMap[node.childAlignment]
   const singleRowWidth =
     childNodes.reduce((sum, child) => sum + Math.max(child.width ?? 160, 1), 0) +
     Math.max(childNodes.length - 1, 0) * 8 +
@@ -485,6 +500,91 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
     marginTop: 2,
     pointerEvents: 'none',
     opacity: 0.75,
+  }
+
+  // Parent node (has children)
+  if (hasChildren) {
+    return (
+      <div
+        id={'nd-' + node.id}
+        ref={nodeRef}
+        style={{
+          background:
+            isChild && isMultiSel ? 'rgba(79,124,255,0.18)' : isChild ? 'rgba(255,255,255,0.1)' : node.bg,
+          color: node.fg,
+          borderRadius: nodeBorderRadius,
+          clipPath: nodeClipPath,
+          position: isChild ? 'relative' : 'absolute',
+          left: isChild ? undefined : node.x,
+          top: isChild ? undefined : node.y,
+          width: nodeWidth,
+          height: nodeHeight,
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          flex: isChild ? '0 0 auto' : undefined,
+          userSelect: 'none',
+          border: `${isChild ? 1.5 : 2}px solid ${multiBorderColor}`,
+          boxShadow,
+          minWidth: nodeMinWidth ?? (isChild ? 80 : 120),
+          minHeight: Math.max(nodeHeight, nodeMinHeight ?? 0),
+          outline: isMultiSel ? '1.5px dashed rgba(79,124,255,0.8)' : 'none',
+          outlineOffset: 4,
+        }}
+        onClick={handleClick}
+        onContextMenu={handleContextMenu}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        {selectionBadge}
+        {ports}
+        {resizeHandle}
+        <div
+          style={{
+            padding: '10px 14px 8px',
+            cursor: 'move',
+            textAlign: 'center',
+            flexShrink: 0,
+          }}
+          onMouseDown={handleMouseDown}
+        >
+          <span style={{ ...titleTextStyle, display: 'block' }}>
+            <MathText content={node.title} align="center" />
+          </span>
+          {node.desc && (
+            <span style={descTextStyle}>
+              <MathText content={node.desc} align="center" />
+            </span>
+          )}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: wrapChildren ? 'wrap' : 'nowrap',
+            gap: 8,
+            padding: '8px 10px 10px',
+            alignItems: node.childAlignment === 'start' ? 'stretch' : childAlignment,
+            alignContent: childAlignment,
+            justifyContent: childAlignment,
+            minHeight: 30,
+            flex: 1,
+            width: '100%',
+            boxSizing: 'border-box',
+          }}
+        >
+          {childNodes.map((child) => (
+            <DiagramNode
+              key={child.id}
+              node={child}
+              canvasRef={canvasRef}
+              viewport={viewport}
+              zoom={zoom}
+            />
+          ))}
+        </div>
+      </div>
+    )
   }
 
   // Child node
@@ -533,85 +633,6 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
             <MathText content={node.desc} align="center" />
           </span>
         )}
-      </div>
-    )
-  }
-
-  // Parent node (has children)
-  if (hasChildren) {
-    return (
-      <div
-        id={'nd-' + node.id}
-        ref={nodeRef}
-        style={{
-          background: node.bg,
-          color: node.fg,
-          borderRadius: nodeBorderRadius,
-          clipPath: nodeClipPath,
-          position: 'absolute',
-          left: node.x,
-          top: node.y,
-          width: nodeWidth,
-          boxSizing: 'border-box',
-          userSelect: 'none',
-          border: `2px solid ${multiBorderColor}`,
-          boxShadow,
-          minWidth: nodeMinWidth ?? 120,
-          minHeight: Math.max(nodeHeight, nodeMinHeight ?? 0),
-          outline: isMultiSel ? '1.5px dashed rgba(79,124,255,0.8)' : 'none',
-          outlineOffset: 4,
-        }}
-        onClick={handleClick}
-        onContextMenu={handleContextMenu}
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
-      >
-        {selectionBadge}
-        {ports}
-        {resizeHandle}
-        <div
-          style={{
-            padding: '10px 14px 8px',
-            cursor: 'move',
-            textAlign: 'center',
-            flexShrink: 0,
-          }}
-          onMouseDown={handleMouseDown}
-        >
-          <span style={{ ...titleTextStyle, display: 'block' }}>
-            <MathText content={node.title} align="center" />
-          </span>
-          {node.desc && (
-            <span style={descTextStyle}>
-              <MathText content={node.desc} align="center" />
-            </span>
-          )}
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            flexWrap: wrapChildren ? 'wrap' : 'nowrap',
-            gap: 8,
-            padding: '8px 10px 10px',
-            alignItems: 'stretch',
-            alignContent: 'flex-start',
-            minHeight: 30,
-            width: '100%',
-            boxSizing: 'border-box',
-            justifyContent: wrapChildren ? 'center' : 'flex-start',
-          }}
-        >
-          {childNodes.map((child) => (
-            <DiagramNode
-              key={child.id}
-              node={child}
-              canvasRef={canvasRef}
-              viewport={viewport}
-              zoom={zoom}
-            />
-          ))}
-        </div>
       </div>
     )
   }

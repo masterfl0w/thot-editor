@@ -274,6 +274,10 @@ function getNodeSize(node: DiagramNode) {
   }
 }
 
+function normalizeChildAlignment(value: unknown): DiagramNode['childAlignment'] {
+  return value === 'center' || value === 'end' ? value : 'start'
+}
+
 function fitParentToChildren(nodes: Record<string, DiagramNode>, parentId: string) {
   const nextNodes = { ...nodes }
   let currentParentId: string | null = parentId
@@ -359,6 +363,10 @@ function isDiagramNode(value: unknown): value is DiagramNode {
     typeof node.y === 'number' &&
     (typeof node.width === 'number' || node.width === null || node.width === undefined) &&
     (typeof node.height === 'number' || node.height === null || node.height === undefined) &&
+    (node.childAlignment === 'start' ||
+      node.childAlignment === 'center' ||
+      node.childAlignment === 'end' ||
+      node.childAlignment === undefined) &&
     (typeof node.parent === 'string' || node.parent === null) &&
     Array.isArray(node.children)
   )
@@ -433,13 +441,14 @@ function normalizeWorkspaceData(data: unknown) {
   const nodes = Object.fromEntries(
     nodeEntries.map(([id, value]) => [
       id,
-      {
-        ...(value as DiagramNode),
-        width: (value as DiagramNode).width ?? null,
-        height: (value as DiagramNode).height ?? null,
-        children: [...(value as DiagramNode).children],
-      },
-    ]),
+        {
+          ...(value as DiagramNode),
+          width: (value as DiagramNode).width ?? null,
+          height: (value as DiagramNode).height ?? null,
+          childAlignment: normalizeChildAlignment((value as DiagramNode).childAlignment),
+          children: [...(value as DiagramNode).children],
+        },
+      ]),
   )
   const texts = Object.fromEntries(
     textEntries.map(([id, value]) => [id, { ...(value as TextNode) }]),
@@ -552,6 +561,7 @@ export const useDiagram = create<DiagramState>()(
               y: layoutMode === 'static' ? snap(y) : y,
               width: opts.width ?? baseSize.width,
               height: opts.height ?? baseSize.height,
+              childAlignment: opts.childAlignment ?? 'start',
               parent: null,
               children: [],
             }

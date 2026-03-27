@@ -19,6 +19,7 @@ export interface DiagramNode {
   y: number
   width?: number | null
   height?: number | null
+  childAlignment: 'start' | 'center' | 'end'
   parent: string | null
   children: string[]
 }

@@ -603,6 +603,27 @@ const PropertiesPanel: FunctionComponent = () => {
                 onChange={(e) => updateNode(node.id, { radius: +e.target.value })}
               />
             </div>
+            <div style={{ marginBottom: 10 }}>
+              <label className={labelStyle}>Child Alignment</label>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {(['start', 'center', 'end'] as const).map((alignment) => (
+                  <button
+                    key={alignment}
+                    className={`${alignBtnStyle} ${node.childAlignment === alignment ? fmtBtnOnStyle : ''}`}
+                    onClick={() => updateNode(node.id, { childAlignment: alignment })}
+                    title={`Align children ${alignment}`}
+                  >
+                    {alignment === 'start' ? (
+                      <IconAlignLeft />
+                    ) : alignment === 'center' ? (
+                      <IconAlignCenter />
+                    ) : (
+                      <IconAlignRight />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className={sepStyle} />
             {node.parent && (
               <div style={{ marginBottom: 11 }}>
