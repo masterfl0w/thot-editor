@@ -192,7 +192,6 @@ const MAX_ACTION_HISTORY = 120
 const CHILD_GAP = 8
 const PARENT_CHILD_PADDING_X = 10
 const PARENT_CHILD_PADDING_TOP = 8
-const PARENT_CHILD_PADDING_BOTTOM = 10
 const PARENT_HEADER_HEIGHT = 64
 const EMPTY_COLLABORATION: CollaborationState = {
   active: false,
@@ -278,6 +277,14 @@ function normalizeChildAlignment(value: unknown): DiagramNode['childAlignment'] 
   return value === 'center' || value === 'end' ? value : 'start'
 }
 
+function normalizeChildWrap(value: unknown) {
+  return typeof value === 'boolean' ? value : false
+}
+
+function normalizePositiveNumber(value: unknown, fallback: number) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback
+}
+
 function fitParentToChildren(nodes: Record<string, DiagramNode>, parentId: string) {
   const nextNodes = { ...nodes }
   let currentParentId: string | null = parentId
@@ -296,15 +303,15 @@ function fitParentToChildren(nodes: Record<string, DiagramNode>, parentId: strin
 
     const totalChildrenWidth =
       childNodes.reduce((sum: number, child: DiagramNode) => sum + getNodeSize(child).width, 0) +
-      CHILD_GAP * Math.max(childNodes.length - 1, 0)
+      parent.childGap * Math.max(childNodes.length - 1, 0)
     const tallestChild = childNodes.reduce(
       (max: number, child: DiagramNode) => Math.max(max, getNodeSize(child).height),
       0,
     )
     const fallback = defaultNodeSize(parent.shape)
-    const requiredWidth = totalChildrenWidth + PARENT_CHILD_PADDING_X * 2
+    const requiredWidth = totalChildrenWidth + parent.childPaddingX * 2
     const requiredHeight =
-      PARENT_HEADER_HEIGHT + PARENT_CHILD_PADDING_TOP + tallestChild + PARENT_CHILD_PADDING_BOTTOM
+      PARENT_HEADER_HEIGHT + parent.childPaddingY * 2 + tallestChild
 
     nextNodes[currentParentId] = {
       ...parent,
@@ -367,6 +374,14 @@ function isDiagramNode(value: unknown): value is DiagramNode {
       node.childAlignment === 'center' ||
       node.childAlignment === 'end' ||
       node.childAlignment === undefined) &&
+    (node.childCrossAlignment === 'start' ||
+      node.childCrossAlignment === 'center' ||
+      node.childCrossAlignment === 'end' ||
+      node.childCrossAlignment === undefined) &&
+    (typeof node.childGap === 'number' || node.childGap === undefined) &&
+    (typeof node.childPaddingX === 'number' || node.childPaddingX === undefined) &&
+    (typeof node.childPaddingY === 'number' || node.childPaddingY === undefined) &&
+    (typeof node.childWrap === 'boolean' || node.childWrap === undefined) &&
     (typeof node.parent === 'string' || node.parent === null) &&
     Array.isArray(node.children)
   )
@@ -442,13 +457,24 @@ function normalizeWorkspaceData(data: unknown) {
     nodeEntries.map(([id, value]) => [
       id,
       {
-        ...(value as DiagramNode),
-        width: (value as DiagramNode).width ?? null,
-        height: (value as DiagramNode).height ?? null,
-        childAlignment: normalizeChildAlignment((value as DiagramNode).childAlignment),
-        children: [...(value as DiagramNode).children],
-      },
-    ]),
+          ...(value as DiagramNode),
+          width: (value as DiagramNode).width ?? null,
+          height: (value as DiagramNode).height ?? null,
+          childAlignment: normalizeChildAlignment((value as DiagramNode).childAlignment),
+          childCrossAlignment: normalizeChildAlignment((value as DiagramNode).childCrossAlignment),
+          childGap: normalizePositiveNumber((value as DiagramNode).childGap, CHILD_GAP),
+          childPaddingX: normalizePositiveNumber(
+            (value as DiagramNode).childPaddingX,
+            PARENT_CHILD_PADDING_X,
+          ),
+          childPaddingY: normalizePositiveNumber(
+            (value as DiagramNode).childPaddingY,
+            PARENT_CHILD_PADDING_TOP,
+          ),
+          childWrap: normalizeChildWrap((value as DiagramNode).childWrap),
+          children: [...(value as DiagramNode).children],
+        },
+      ]),
   )
   const texts = Object.fromEntries(
     textEntries.map(([id, value]) => [id, { ...(value as TextNode) }]),
@@ -562,6 +588,11 @@ export const useDiagram = create<DiagramState>()(
               width: opts.width ?? baseSize.width,
               height: opts.height ?? baseSize.height,
               childAlignment: opts.childAlignment ?? 'start',
+              childCrossAlignment: opts.childCrossAlignment ?? 'start',
+              childGap: opts.childGap ?? CHILD_GAP,
+              childPaddingX: opts.childPaddingX ?? PARENT_CHILD_PADDING_X,
+              childPaddingY: opts.childPaddingY ?? PARENT_CHILD_PADDING_TOP,
+              childWrap: opts.childWrap ?? false,
               parent: null,
               children: [],
             }
@@ -676,6 +707,13 @@ export const useDiagram = create<DiagramState>()(
               if ('bg' in patch) childPatch.bg = patch.bg
               if ('fg' in patch) childPatch.fg = patch.fg
               nextNodes = applyNodePatchToDescendants(nextNodes, id, childPatch)
+            }
+
+            if (
+              node.children.length > 0 &&
+              ('childGap' in patch || 'childPaddingX' in patch || 'childPaddingY' in patch)
+            ) {
+              nextNodes = fitParentToChildren(nextNodes, id)
             }
 
             applyWorkspaceChange('Edit box', {

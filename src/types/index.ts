@@ -20,6 +20,11 @@ export interface DiagramNode {
   width?: number | null
   height?: number | null
   childAlignment: 'start' | 'center' | 'end'
+  childCrossAlignment: 'start' | 'center' | 'end'
+  childGap: number
+  childPaddingX: number
+  childPaddingY: number
+  childWrap: boolean
   parent: string | null
   children: string[]
 }

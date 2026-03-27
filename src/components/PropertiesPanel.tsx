@@ -624,6 +624,76 @@ const PropertiesPanel: FunctionComponent = () => {
                 ))}
               </div>
             </div>
+            <div style={{ marginBottom: 10 }}>
+              <label className={labelStyle}>Child Vertical Align</label>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {(['start', 'center', 'end'] as const).map((alignment) => (
+                  <button
+                    key={alignment}
+                    className={`${alignBtnStyle} ${node.childCrossAlignment === alignment ? fmtBtnOnStyle : ''}`}
+                    onClick={() => updateNode(node.id, { childCrossAlignment: alignment })}
+                    title={`Align children vertically ${alignment}`}
+                  >
+                    {alignment === 'start' ? (
+                      <IconAlignLeft />
+                    ) : alignment === 'center' ? (
+                      <IconAlignCenter />
+                    ) : (
+                      <IconAlignRight />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom: 11 }}>
+              <label className={labelStyle}>
+                Child Gap — <span>{node.childGap}</span>px
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={64}
+                value={node.childGap}
+                style={{ width: '100%' }}
+                onChange={(e) => updateNode(node.id, { childGap: +e.target.value })}
+              />
+            </div>
+            <div style={{ marginBottom: 11 }}>
+              <label className={labelStyle}>
+                Horizontal Padding — <span>{node.childPaddingX}</span>px
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={64}
+                value={node.childPaddingX}
+                style={{ width: '100%' }}
+                onChange={(e) => updateNode(node.id, { childPaddingX: +e.target.value })}
+              />
+            </div>
+            <div style={{ marginBottom: 11 }}>
+              <label className={labelStyle}>
+                Vertical Padding — <span>{node.childPaddingY}</span>px
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={64}
+                value={node.childPaddingY}
+                style={{ width: '100%' }}
+                onChange={(e) => updateNode(node.id, { childPaddingY: +e.target.value })}
+              />
+            </div>
+            <div style={{ marginBottom: 11 }}>
+              <label className={labelStyle}>Wrap Children</label>
+              <button
+                className={`${actionBtnStyle} ${node.childWrap ? fmtBtnOnStyle : ''}`}
+                style={{ marginBottom: 0, width: '100%', justifyContent: 'center' }}
+                onClick={() => updateNode(node.id, { childWrap: !node.childWrap })}
+              >
+                {node.childWrap ? 'Wrap enabled' : 'Single row'}
+              </button>
+            </div>
             <div className={sepStyle} />
             {node.parent && (
               <div style={{ marginBottom: 11 }}>

@@ -457,11 +457,12 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
     end: 'flex-end',
   }
   const childAlignment = childAlignMap[node.childAlignment]
+  const childCrossAlignment = childAlignMap[node.childCrossAlignment]
   const singleRowWidth =
     childNodes.reduce((sum, child) => sum + Math.max(child.width ?? 160, 1), 0) +
-    Math.max(childNodes.length - 1, 0) * 8 +
-    20
-  const wrapChildren = nodeWidth < singleRowWidth
+    Math.max(childNodes.length - 1, 0) * node.childGap +
+    node.childPaddingX * 2
+  const wrapChildren = node.childWrap || nodeWidth < singleRowWidth
   const showResizeHandle = isSelected && interactionMode !== 'move'
   const resizeHandle = showResizeHandle ? (
     <button
@@ -568,10 +569,10 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
             display: 'flex',
             flexDirection: 'row',
             flexWrap: wrapChildren ? 'wrap' : 'nowrap',
-            gap: 8,
-            padding: '8px 10px 10px',
-            alignItems: node.childAlignment === 'start' ? 'stretch' : childAlignment,
-            alignContent: childAlignment,
+            gap: node.childGap,
+            padding: `${node.childPaddingY}px ${node.childPaddingX}px`,
+            alignItems: node.childCrossAlignment === 'start' ? 'stretch' : childCrossAlignment,
+            alignContent: childCrossAlignment,
             justifyContent: childAlignment,
             minHeight: 30,
             flex: 1,

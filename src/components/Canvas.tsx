@@ -267,7 +267,10 @@ const Canvas: FunctionComponent = () => {
         }}
       >
         {/* SVG edges */}
-        <div id="esvg-root" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+        <div
+          id="esvg-root"
+          style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 120 }}
+        >
           <EdgeLayer canvasRef={cwRef} />
         </div>
 
@@ -379,7 +382,7 @@ const Canvas: FunctionComponent = () => {
           opacity: 0.85,
         }}
       >
-        v0.4.1
+        v0.4.2
       </div>
     </div>
   )
