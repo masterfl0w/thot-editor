@@ -310,8 +310,7 @@ function fitParentToChildren(nodes: Record<string, DiagramNode>, parentId: strin
     )
     const fallback = defaultNodeSize(parent.shape)
     const requiredWidth = totalChildrenWidth + parent.childPaddingX * 2
-    const requiredHeight =
-      PARENT_HEADER_HEIGHT + parent.childPaddingY * 2 + tallestChild
+    const requiredHeight = PARENT_HEADER_HEIGHT + parent.childPaddingY * 2 + tallestChild
 
     nextNodes[currentParentId] = {
       ...parent,
@@ -457,24 +456,24 @@ function normalizeWorkspaceData(data: unknown) {
     nodeEntries.map(([id, value]) => [
       id,
       {
-          ...(value as DiagramNode),
-          width: (value as DiagramNode).width ?? null,
-          height: (value as DiagramNode).height ?? null,
-          childAlignment: normalizeChildAlignment((value as DiagramNode).childAlignment),
-          childCrossAlignment: normalizeChildAlignment((value as DiagramNode).childCrossAlignment),
-          childGap: normalizePositiveNumber((value as DiagramNode).childGap, CHILD_GAP),
-          childPaddingX: normalizePositiveNumber(
-            (value as DiagramNode).childPaddingX,
-            PARENT_CHILD_PADDING_X,
-          ),
-          childPaddingY: normalizePositiveNumber(
-            (value as DiagramNode).childPaddingY,
-            PARENT_CHILD_PADDING_TOP,
-          ),
-          childWrap: normalizeChildWrap((value as DiagramNode).childWrap),
-          children: [...(value as DiagramNode).children],
-        },
-      ]),
+        ...(value as DiagramNode),
+        width: (value as DiagramNode).width ?? null,
+        height: (value as DiagramNode).height ?? null,
+        childAlignment: normalizeChildAlignment((value as DiagramNode).childAlignment),
+        childCrossAlignment: normalizeChildAlignment((value as DiagramNode).childCrossAlignment),
+        childGap: normalizePositiveNumber((value as DiagramNode).childGap, CHILD_GAP),
+        childPaddingX: normalizePositiveNumber(
+          (value as DiagramNode).childPaddingX,
+          PARENT_CHILD_PADDING_X,
+        ),
+        childPaddingY: normalizePositiveNumber(
+          (value as DiagramNode).childPaddingY,
+          PARENT_CHILD_PADDING_TOP,
+        ),
+        childWrap: normalizeChildWrap((value as DiagramNode).childWrap),
+        children: [...(value as DiagramNode).children],
+      },
+    ]),
   )
   const texts = Object.fromEntries(
     textEntries.map(([id, value]) => [id, { ...(value as TextNode) }]),
