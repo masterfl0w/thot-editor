@@ -441,14 +441,14 @@ function normalizeWorkspaceData(data: unknown) {
   const nodes = Object.fromEntries(
     nodeEntries.map(([id, value]) => [
       id,
-        {
-          ...(value as DiagramNode),
-          width: (value as DiagramNode).width ?? null,
-          height: (value as DiagramNode).height ?? null,
-          childAlignment: normalizeChildAlignment((value as DiagramNode).childAlignment),
-          children: [...(value as DiagramNode).children],
-        },
-      ]),
+      {
+        ...(value as DiagramNode),
+        width: (value as DiagramNode).width ?? null,
+        height: (value as DiagramNode).height ?? null,
+        childAlignment: normalizeChildAlignment((value as DiagramNode).childAlignment),
+        children: [...(value as DiagramNode).children],
+      },
+    ]),
   )
   const texts = Object.fromEntries(
     textEntries.map(([id, value]) => [id, { ...(value as TextNode) }]),

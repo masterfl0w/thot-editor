@@ -448,12 +448,14 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
   const childNodes = node.children
     .map((cid) => useDiagram.getState().nodes[cid])
     .filter((child): child is DiagramNodeType => Boolean(child))
-  const childAlignMap: Record<DiagramNodeType['childAlignment'], React.CSSProperties['justifyContent']> =
-    {
-      start: 'flex-start',
-      center: 'center',
-      end: 'flex-end',
-    }
+  const childAlignMap: Record<
+    DiagramNodeType['childAlignment'],
+    React.CSSProperties['justifyContent']
+  > = {
+    start: 'flex-start',
+    center: 'center',
+    end: 'flex-end',
+  }
   const childAlignment = childAlignMap[node.childAlignment]
   const singleRowWidth =
     childNodes.reduce((sum, child) => sum + Math.max(child.width ?? 160, 1), 0) +
@@ -510,7 +512,11 @@ const DiagramNode: FunctionComponent<Props> = ({ node, canvasRef, viewport, zoom
         ref={nodeRef}
         style={{
           background:
-            isChild && isMultiSel ? 'rgba(79,124,255,0.18)' : isChild ? 'rgba(255,255,255,0.1)' : node.bg,
+            isChild && isMultiSel
+              ? 'rgba(79,124,255,0.18)'
+              : isChild
+                ? 'rgba(255,255,255,0.1)'
+                : node.bg,
           color: node.fg,
           borderRadius: nodeBorderRadius,
           clipPath: nodeClipPath,
