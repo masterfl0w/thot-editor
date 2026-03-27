@@ -407,7 +407,7 @@ const LandingPage: FunctionComponent<LandingPageProps> = ({ onEnterEditor }) => 
             >
               Thot Editor
             </span>
-            <span style={{ fontSize: 14, color: '#5f5e5a', fontWeight: 600 }}>v0.4</span>
+            <span style={{ fontSize: 14, color: '#5f5e5a', fontWeight: 600 }}>v0.4.1</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <a

@@ -379,7 +379,7 @@ const Canvas: FunctionComponent = () => {
           opacity: 0.85,
         }}
       >
-        v0.4
+        v0.4.1
       </div>
     </div>
   )
